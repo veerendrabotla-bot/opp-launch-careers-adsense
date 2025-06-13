@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -11,96 +12,30 @@ import {
   ExternalLink, 
   Calendar,
   MapPin,
-  Building
+  Building,
+  Loader2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-// Mock data - this would come from your database
-const mockOpportunities = [
-  {
-    id: 1,
-    title: "Frontend Developer Internship",
-    description: "Join our dynamic team to build cutting-edge web applications using React and TypeScript.",
-    type: "Internship",
-    domain: "Tech",
-    location: "Remote",
-    tags: ["React", "TypeScript", "Frontend"],
-    deadline: "2024-07-15",
-    sourceUrl: "https://internshala.com/internship/detail/frontend-developer-internship-at-tech-company1703",
-    company: "TechCorp",
-    isBookmarked: false,
-    createdAt: "2024-06-01"
-  },
-  {
-    id: 2,
-    title: "Google Summer of Code 2024",
-    description: "Contribute to open source projects and get mentored by industry experts.",
-    type: "Contest",
-    domain: "Tech",
-    location: "Remote",
-    tags: ["Open Source", "Programming", "Mentorship"],
-    deadline: "2024-06-30",
-    sourceUrl: "https://summerofcode.withgoogle.com",
-    company: "Google",
-    isBookmarked: true,
-    createdAt: "2024-05-15"
-  },
-  {
-    id: 3,
-    title: "Women in Tech Scholarship",
-    description: "Scholarship program supporting women pursuing careers in technology.",
-    type: "Scholarship",
-    domain: "Tech",
-    location: "India",
-    tags: ["Women", "Scholarship", "Tech"],
-    deadline: "2024-08-01",
-    sourceUrl: "https://example.com/scholarship",
-    company: "TechFoundation",
-    isBookmarked: false,
-    createdAt: "2024-05-20"
-  },
-  {
-    id: 4,
-    title: "Design Thinking Workshop",
-    description: "Learn design thinking methodologies from industry professionals.",
-    type: "Event",
-    domain: "Design",
-    location: "Mumbai",
-    tags: ["Design", "Workshop", "UX"],
-    deadline: "2024-06-25",
-    sourceUrl: "https://unstop.com/events/design-workshop",
-    company: "DesignHub",
-    isBookmarked: false,
-    createdAt: "2024-06-05"
-  }
-];
+import { useOpportunities } from "@/hooks/useOpportunities";
+import { useBookmarks } from "@/hooks/useBookmarks";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Opportunities = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedType, setSelectedType] = useState("All");
   const [selectedDomain, setSelectedDomain] = useState("All");
-  const [opportunities, setOpportunities] = useState(mockOpportunities);
+  const { user } = useAuth();
+
+  const { opportunities, loading, error } = useOpportunities({
+    type: selectedType,
+    domain: selectedDomain,
+    search: searchTerm,
+  });
+
+  const { bookmarks, toggleBookmark, loading: bookmarkLoading } = useBookmarks();
 
   const types = ["All", "Internship", "Contest", "Event", "Scholarship"];
   const domains = ["All", "Tech", "Design", "Marketing", "Business", "Finance"];
-
-  const handleBookmark = (id: number) => {
-    setOpportunities(prev => 
-      prev.map(opp => 
-        opp.id === id ? { ...opp, isBookmarked: !opp.isBookmarked } : opp
-      )
-    );
-  };
-
-  const filteredOpportunities = opportunities.filter(opp => {
-    const matchesSearch = opp.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         opp.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         opp.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesType = selectedType === "All" || opp.type === selectedType;
-    const matchesDomain = selectedDomain === "All" || opp.domain === selectedDomain;
-    
-    return matchesSearch && matchesType && matchesDomain;
-  });
 
   const getTypeColor = (type: string) => {
     switch (type) {
@@ -124,6 +59,17 @@ const Opportunities = () => {
     return `${diffDays} days left`;
   };
 
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Something went wrong</h3>
+          <p className="text-gray-600">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 pb-20 md:pb-0">
       {/* Header */}
@@ -135,12 +81,20 @@ const Opportunities = () => {
               <p className="text-gray-600 mt-2">Discover internships, contests, events, and scholarships</p>
             </div>
             <div className="mt-4 md:mt-0">
-              <Link to="/submit">
-                <Button className="bg-blue-600 hover:bg-blue-700">
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Submit Opportunity
-                </Button>
-              </Link>
+              {user ? (
+                <Link to="/submit">
+                  <Button className="bg-blue-600 hover:bg-blue-700">
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Submit Opportunity
+                  </Button>
+                </Link>
+              ) : (
+                <Link to="/auth">
+                  <Button className="bg-blue-600 hover:bg-blue-700">
+                    Sign In to Submit
+                  </Button>
+                </Link>
+              )}
             </div>
           </div>
         </div>
@@ -221,107 +175,123 @@ const Opportunities = () => {
           <div className="flex-1">
             <div className="mb-6">
               <p className="text-gray-600">
-                Showing {filteredOpportunities.length} opportunities
+                {loading ? "Loading..." : `Showing ${opportunities.length} opportunities`}
               </p>
             </div>
 
-            <div className="space-y-6">
-              {filteredOpportunities.map(opportunity => (
-                <Card key={opportunity.id} className="hover:shadow-lg transition-shadow duration-200">
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <Badge className={getTypeColor(opportunity.type)}>
-                            {opportunity.type}
-                          </Badge>
-                          <Badge variant="outline">{opportunity.domain}</Badge>
+            {loading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {opportunities.map(opportunity => (
+                  <Card key={opportunity.id} className="hover:shadow-lg transition-shadow duration-200">
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <Badge className={getTypeColor(opportunity.type)}>
+                              {opportunity.type}
+                            </Badge>
+                            <Badge variant="outline">{opportunity.domain}</Badge>
+                          </div>
+                          <CardTitle className="text-xl mb-2">
+                            <Link 
+                              to={`/opportunities/${opportunity.id}`}
+                              className="hover:text-blue-600 transition-colors"
+                            >
+                              {opportunity.title}
+                            </Link>
+                          </CardTitle>
+                          <div className="flex items-center gap-4 text-sm text-gray-500 mb-3">
+                            {opportunity.company && (
+                              <div className="flex items-center gap-1">
+                                <Building className="h-4 w-4" />
+                                {opportunity.company}
+                              </div>
+                            )}
+                            {opportunity.location && (
+                              <div className="flex items-center gap-1">
+                                <MapPin className="h-4 w-4" />
+                                {opportunity.location}
+                              </div>
+                            )}
+                            <div className="flex items-center gap-1">
+                              <Calendar className="h-4 w-4" />
+                              {formatDeadline(opportunity.deadline)}
+                            </div>
+                          </div>
                         </div>
-                        <CardTitle className="text-xl mb-2">
-                          <Link 
-                            to={`/opportunities/${opportunity.id}`}
-                            className="hover:text-blue-600 transition-colors"
-                          >
-                            {opportunity.title}
-                          </Link>
-                        </CardTitle>
-                        <div className="flex items-center gap-4 text-sm text-gray-500 mb-3">
-                          <div className="flex items-center gap-1">
-                            <Building className="h-4 w-4" />
-                            {opportunity.company}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <MapPin className="h-4 w-4" />
-                            {opportunity.location}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Calendar className="h-4 w-4" />
-                            {formatDeadline(opportunity.deadline)}
-                          </div>
-                        </div>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleBookmark(opportunity.id)}
-                        className={cn(
-                          "ml-4",
-                          opportunity.isBookmarked && "text-blue-600"
-                        )}
-                      >
-                        <Bookmark className={cn(
-                          "h-5 w-5",
-                          opportunity.isBookmarked && "fill-current"
-                        )} />
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <CardDescription className="mb-4 text-gray-600">
-                      {opportunity.description}
-                    </CardDescription>
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {opportunity.tags.map((tag, index) => (
-                        <Badge key={index} variant="secondary" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                    <div className="flex gap-3">
-                      <Button className="bg-blue-600 hover:bg-blue-700">
-                        <ExternalLink className="h-4 w-4 mr-2" />
-                        Apply Now
-                      </Button>
-                      <Link to={`/opportunities/${opportunity.id}`}>
-                        <Button variant="outline">
-                          View Details
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => toggleBookmark(opportunity.id)}
+                          disabled={bookmarkLoading}
+                          className={cn(
+                            "ml-4",
+                            bookmarks.includes(opportunity.id) && "text-blue-600"
+                          )}
+                        >
+                          <Bookmark className={cn(
+                            "h-5 w-5",
+                            bookmarks.includes(opportunity.id) && "fill-current"
+                          )} />
                         </Button>
-                      </Link>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <CardDescription className="mb-4 text-gray-600">
+                        {opportunity.description}
+                      </CardDescription>
+                      {opportunity.tags && opportunity.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mb-4">
+                          {opportunity.tags.map((tag, index) => (
+                            <Badge key={index} variant="secondary" className="text-xs">
+                              {tag}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                      <div className="flex gap-3">
+                        <Button 
+                          onClick={() => window.open(opportunity.source_url, '_blank')}
+                          className="bg-blue-600 hover:bg-blue-700"
+                        >
+                          <ExternalLink className="h-4 w-4 mr-2" />
+                          Apply Now
+                        </Button>
+                        <Link to={`/opportunities/${opportunity.id}`}>
+                          <Button variant="outline">
+                            View Details
+                          </Button>
+                        </Link>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
 
-            {filteredOpportunities.length === 0 && (
-              <div className="text-center py-12">
-                <div className="text-gray-400 mb-4">
-                  <Search className="h-12 w-12 mx-auto" />
-                </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No opportunities found</h3>
-                <p className="text-gray-600 mb-4">
-                  Try adjusting your filters or search terms to find more opportunities.
-                </p>
-                <Button 
-                  onClick={() => {
-                    setSearchTerm("");
-                    setSelectedType("All");
-                    setSelectedDomain("All");
-                  }}
-                  variant="outline"
-                >
-                  Clear Filters
-                </Button>
+                {opportunities.length === 0 && !loading && (
+                  <div className="text-center py-12">
+                    <div className="text-gray-400 mb-4">
+                      <Search className="h-12 w-12 mx-auto" />
+                    </div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No opportunities found</h3>
+                    <p className="text-gray-600 mb-4">
+                      Try adjusting your filters or search terms to find more opportunities.
+                    </p>
+                    <Button 
+                      onClick={() => {
+                        setSearchTerm("");
+                        setSelectedType("All");
+                        setSelectedDomain("All");
+                      }}
+                      variant="outline"
+                    >
+                      Clear Filters
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
           </div>
