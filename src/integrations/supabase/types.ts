@@ -9,6 +9,36 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      admin_actions: {
+        Row: {
+          action_type: string
+          admin_id: string
+          details: Json | null
+          id: string
+          performed_at: string
+          target_id: string | null
+          target_type: string
+        }
+        Insert: {
+          action_type: string
+          admin_id: string
+          details?: Json | null
+          id?: string
+          performed_at?: string
+          target_id?: string | null
+          target_type: string
+        }
+        Update: {
+          action_type?: string
+          admin_id?: string
+          details?: Json | null
+          id?: string
+          performed_at?: string
+          target_id?: string | null
+          target_type?: string
+        }
+        Relationships: []
+      }
       bookmarks: {
         Row: {
           created_at: string
@@ -65,6 +95,8 @@ export type Database = {
       opportunities: {
         Row: {
           applications: number | null
+          approved_at: string | null
+          approved_by: string | null
           company: string | null
           created_at: string
           deadline: string
@@ -74,6 +106,7 @@ export type Database = {
           is_approved: boolean | null
           is_expired: boolean | null
           location: string | null
+          rejection_reason: string | null
           source_url: string
           submitted_by: string | null
           tags: string[] | null
@@ -84,6 +117,8 @@ export type Database = {
         }
         Insert: {
           applications?: number | null
+          approved_at?: string | null
+          approved_by?: string | null
           company?: string | null
           created_at?: string
           deadline: string
@@ -93,6 +128,7 @@ export type Database = {
           is_approved?: boolean | null
           is_expired?: boolean | null
           location?: string | null
+          rejection_reason?: string | null
           source_url: string
           submitted_by?: string | null
           tags?: string[] | null
@@ -103,6 +139,8 @@ export type Database = {
         }
         Update: {
           applications?: number | null
+          approved_at?: string | null
+          approved_by?: string | null
           company?: string | null
           created_at?: string
           deadline?: string
@@ -112,6 +150,7 @@ export type Database = {
           is_approved?: boolean | null
           is_expired?: boolean | null
           location?: string | null
+          rejection_reason?: string | null
           source_url?: string
           submitted_by?: string | null
           tags?: string[] | null
@@ -233,15 +272,49 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _user_id: string
+          _role: Database["public"]["Enums"]["app_role"]
+        }
+        Returns: boolean
+      }
+      is_admin: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "user" | "admin" | "moderator"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -356,6 +429,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["user", "admin", "moderator"],
+    },
   },
 } as const

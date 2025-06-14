@@ -1,352 +1,428 @@
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Calendar, Link2, Plus, X, Upload } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CalendarIcon, X, Plus, Upload, AlertCircle } from 'lucide-react';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 const Submit = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const { toast } = useToast();
+
   const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    type: "",
-    domain: "",
-    location: "",
-    company: "",
-    deadline: "",
-    sourceUrl: "",
-    tags: []
+    title: '',
+    description: '',
+    type: '',
+    domain: '',
+    location: '',
+    company: '',
+    sourceUrl: '',
+    deadline: undefined as Date | undefined,
   });
-  const [currentTag, setCurrentTag] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const types = ["Internship", "Contest", "Event", "Scholarship"];
-  const domains = ["Tech", "Design", "Marketing", "Business", "Finance", "Healthcare", "Education"];
+  const [tags, setTags] = useState<string[]>([]);
+  const [currentTag, setCurrentTag] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+  const opportunityTypes = ['Internship', 'Contest', 'Event', 'Scholarship'];
+  const domains = ['Tech', 'Design', 'Marketing', 'Finance', 'Engineering', 'Research', 'Other'];
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.title.trim()) newErrors.title = 'Title is required';
+    if (!formData.description.trim()) newErrors.description = 'Description is required';
+    if (!formData.type) newErrors.type = 'Type is required';
+    if (!formData.domain) newErrors.domain = 'Domain is required';
+    if (!formData.sourceUrl.trim()) newErrors.sourceUrl = 'Source URL is required';
+    if (!formData.deadline) newErrors.deadline = 'Deadline is required';
+
+    // URL validation
+    if (formData.sourceUrl && !isValidUrl(formData.sourceUrl)) {
+      newErrors.sourceUrl = 'Please enter a valid URL';
+    }
+
+    // Deadline validation
+    if (formData.deadline && formData.deadline <= new Date()) {
+      newErrors.deadline = 'Deadline must be in the future';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const isValidUrl = (string: string) => {
+    try {
+      new URL(string);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  };
+
+  const handleInputChange = (field: string, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: '' }));
+    }
   };
 
   const addTag = () => {
-    if (currentTag.trim() && !formData.tags.includes(currentTag.trim())) {
-      setFormData(prev => ({
-        ...prev,
-        tags: [...prev.tags, currentTag.trim()]
-      }));
-      setCurrentTag("");
+    if (currentTag.trim() && !tags.includes(currentTag.trim()) && tags.length < 10) {
+      setTags([...tags, currentTag.trim()]);
+      setCurrentTag('');
     }
   };
 
   const removeTag = (tagToRemove: string) => {
-    setFormData(prev => ({
-      ...prev,
-      tags: prev.tags.filter(tag => tag !== tagToRemove)
-    }));
+    setTags(tags.filter(tag => tag !== tagToRemove));
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addTag();
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
 
-    // Simulate API call
-    try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+    if (!user) {
       toast({
-        title: "Opportunity submitted successfully! 🎉",
-        description: "Your submission is under review and will be published soon.",
+        title: "Authentication Required",
+        description: "Please sign in to submit opportunities.",
+        variant: "destructive",
+      });
+      navigate('/auth');
+      return;
+    }
+
+    if (!validateForm()) {
+      toast({
+        title: "Validation Error",
+        description: "Please fix the errors in the form.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const { error } = await supabase
+        .from('opportunities')
+        .insert({
+          title: formData.title.trim(),
+          description: formData.description.trim(),
+          type: formData.type as 'Internship' | 'Contest' | 'Event' | 'Scholarship',
+          domain: formData.domain,
+          location: formData.location.trim() || null,
+          company: formData.company.trim() || null,
+          source_url: formData.sourceUrl.trim(),
+          deadline: formData.deadline!.toISOString().split('T')[0], // Format as YYYY-MM-DD
+          tags: tags,
+          submitted_by: user.id,
+          is_approved: false, // Requires admin approval
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Opportunity Submitted!",
+        description: "Your opportunity has been submitted and is pending approval.",
       });
 
       // Reset form
       setFormData({
-        title: "",
-        description: "",
-        type: "",
-        domain: "",
-        location: "",
-        company: "",
-        deadline: "",
-        sourceUrl: "",
-        tags: []
+        title: '',
+        description: '',
+        type: '',
+        domain: '',
+        location: '',
+        company: '',
+        sourceUrl: '',
+        deadline: undefined,
       });
-    } catch (error) {
+      setTags([]);
+      setCurrentTag('');
+
+      // Navigate to opportunities page
+      navigate('/opportunities');
+
+    } catch (error: any) {
+      console.error('Error submitting opportunity:', error);
       toast({
-        title: "Submission failed",
-        description: "Please try again later.",
+        title: "Submission Failed",
+        description: error.message || "Failed to submit opportunity. Please try again.",
         variant: "destructive",
       });
     } finally {
-      setIsSubmitting(false);
+      setLoading(false);
     }
   };
 
-  const isFormValid = formData.title && formData.description && formData.type && 
-                     formData.domain && formData.deadline && formData.sourceUrl;
+  // Redirect if not authenticated
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Card className="max-w-md">
+          <CardContent className="pt-6 text-center">
+            <AlertCircle className="h-12 w-12 text-blue-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Authentication Required</h2>
+            <p className="text-gray-600 mb-4">Please sign in to submit opportunities.</p>
+            <Button onClick={() => navigate('/auth')} className="w-full">
+              Sign In
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4 pb-20 md:pb-8">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
+    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-2xl mx-auto">
         <div className="text-center mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-            Submit an Opportunity
-          </h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Help your fellow students by sharing internships, contests, events, and scholarships you've discovered.
+          <h1 className="text-3xl font-bold text-gray-900">Submit an Opportunity</h1>
+          <p className="text-gray-600 mt-2">
+            Share internships, contests, events, and scholarships with the community
           </p>
         </div>
 
-        {/* Benefits */}
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
-          <Card className="text-center border-blue-200 bg-blue-50">
-            <CardHeader>
-              <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-2">
-                <Plus className="h-6 w-6 text-white" />
-              </div>
-              <CardTitle className="text-lg">Build Community</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <CardDescription>
-                Help thousands of students discover amazing opportunities
-              </CardDescription>
-            </CardContent>
-          </Card>
-
-          <Card className="text-center border-green-200 bg-green-50">
-            <CardHeader>
-              <div className="w-12 h-12 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-2">
-                <Upload className="h-6 w-6 text-white" />
-              </div>
-              <CardTitle className="text-lg">Get Recognition</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <CardDescription>
-                Your contributions will be attributed and celebrated
-              </CardDescription>
-            </CardContent>
-          </Card>
-
-          <Card className="text-center border-purple-200 bg-purple-50">
-            <CardHeader>
-              <div className="w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-2">
-                <Link2 className="h-6 w-6 text-white" />
-              </div>
-              <CardTitle className="text-lg">Grow Network</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <CardDescription>
-                Connect with like-minded students and professionals
-              </CardDescription>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Submission Form */}
-        <Card className="shadow-lg">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-2xl">Opportunity Details</CardTitle>
-            <CardDescription>
-              Please provide complete and accurate information to help students make informed decisions.
-            </CardDescription>
+            <CardTitle>Opportunity Details</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Title */}
               <div>
-                <Label htmlFor="title" className="text-base font-medium">
-                  Opportunity Title *
-                </Label>
+                <Label htmlFor="title">Title *</Label>
                 <Input
                   id="title"
                   value={formData.title}
-                  onChange={(e) => handleInputChange("title", e.target.value)}
-                  placeholder="e.g., Frontend Developer Internship at TechCorp"
-                  className="mt-2"
-                  required
+                  onChange={(e) => handleInputChange('title', e.target.value)}
+                  placeholder="e.g., Software Engineering Internship at Google"
+                  className={errors.title ? 'border-red-500' : ''}
                 />
+                {errors.title && <p className="text-sm text-red-500 mt-1">{errors.title}</p>}
               </div>
 
               {/* Type and Domain */}
-              <div className="grid md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="type" className="text-base font-medium">
-                    Type *
-                  </Label>
-                  <select
-                    id="type"
-                    value={formData.type}
-                    onChange={(e) => handleInputChange("type", e.target.value)}
-                    className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    required
-                  >
-                    <option value="">Select type</option>
-                    {types.map(type => (
-                      <option key={type} value={type}>{type}</option>
-                    ))}
-                  </select>
+                  <Label htmlFor="type">Type *</Label>
+                  <Select value={formData.type} onValueChange={(value) => handleInputChange('type', value)}>
+                    <SelectTrigger className={errors.type ? 'border-red-500' : ''}>
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {opportunityTypes.map(type => (
+                        <SelectItem key={type} value={type}>{type}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.type && <p className="text-sm text-red-500 mt-1">{errors.type}</p>}
                 </div>
 
                 <div>
-                  <Label htmlFor="domain" className="text-base font-medium">
-                    Domain *
-                  </Label>
-                  <select
-                    id="domain"
-                    value={formData.domain}
-                    onChange={(e) => handleInputChange("domain", e.target.value)}
-                    className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    required
-                  >
-                    <option value="">Select domain</option>
-                    {domains.map(domain => (
-                      <option key={domain} value={domain}>{domain}</option>
-                    ))}
-                  </select>
+                  <Label htmlFor="domain">Domain *</Label>
+                  <Select value={formData.domain} onValueChange={(value) => handleInputChange('domain', value)}>
+                    <SelectTrigger className={errors.domain ? 'border-red-500' : ''}>
+                      <SelectValue placeholder="Select domain" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {domains.map(domain => (
+                        <SelectItem key={domain} value={domain}>{domain}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.domain && <p className="text-sm text-red-500 mt-1">{errors.domain}</p>}
                 </div>
               </div>
 
               {/* Company and Location */}
-              <div className="grid md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="company" className="text-base font-medium">
-                    Company/Organization
-                  </Label>
+                  <Label htmlFor="company">Company/Organization</Label>
                   <Input
                     id="company"
                     value={formData.company}
-                    onChange={(e) => handleInputChange("company", e.target.value)}
-                    placeholder="e.g., Google, Microsoft, IIT Bombay"
-                    className="mt-2"
+                    onChange={(e) => handleInputChange('company', e.target.value)}
+                    placeholder="e.g., Google, Microsoft"
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="location" className="text-base font-medium">
-                    Location
-                  </Label>
+                  <Label htmlFor="location">Location</Label>
                   <Input
                     id="location"
                     value={formData.location}
-                    onChange={(e) => handleInputChange("location", e.target.value)}
-                    placeholder="e.g., Mumbai, Remote, Delhi"
-                    className="mt-2"
+                    onChange={(e) => handleInputChange('location', e.target.value)}
+                    placeholder="e.g., Remote, Bangalore, New York"
                   />
                 </div>
               </div>
 
               {/* Description */}
               <div>
-                <Label htmlFor="description" className="text-base font-medium">
-                  Description *
-                </Label>
+                <Label htmlFor="description">Description *</Label>
                 <Textarea
                   id="description"
                   value={formData.description}
-                  onChange={(e) => handleInputChange("description", e.target.value)}
-                  placeholder="Provide a detailed description of the opportunity, requirements, benefits, and any other relevant information..."
-                  className="mt-2 min-h-[120px]"
-                  required
+                  onChange={(e) => handleInputChange('description', e.target.value)}
+                  placeholder="Provide a detailed description of the opportunity, requirements, and benefits..."
+                  rows={6}
+                  className={errors.description ? 'border-red-500' : ''}
                 />
-              </div>
-
-              {/* Deadline and Source URL */}
-              <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <Label htmlFor="deadline" className="text-base font-medium">
-                    Application Deadline *
-                  </Label>
-                  <div className="relative mt-2">
-                    <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="deadline"
-                      type="date"
-                      value={formData.deadline}
-                      onChange={(e) => handleInputChange("deadline", e.target.value)}
-                      className="pl-10"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="sourceUrl" className="text-base font-medium">
-                    Source URL *
-                  </Label>
-                  <div className="relative mt-2">
-                    <Link2 className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="sourceUrl"
-                      type="url"
-                      value={formData.sourceUrl}
-                      onChange={(e) => handleInputChange("sourceUrl", e.target.value)}
-                      placeholder="https://internshala.com/internship/..."
-                      className="pl-10"
-                      required
-                    />
-                  </div>
-                </div>
+                {errors.description && <p className="text-sm text-red-500 mt-1">{errors.description}</p>}
               </div>
 
               {/* Tags */}
               <div>
-                <Label className="text-base font-medium">Tags</Label>
-                <p className="text-sm text-gray-600 mb-3">
-                  Add relevant skills, technologies, or keywords to help students find this opportunity
-                </p>
-                <div className="flex gap-2 mb-3">
+                <Label htmlFor="tags">Tags</Label>
+                <div className="flex gap-2 mb-2">
                   <Input
+                    id="tags"
                     value={currentTag}
                     onChange={(e) => setCurrentTag(e.target.value)}
-                    placeholder="e.g., React, Design, Python"
-                    onKeyPress={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        addTag();
-                      }
-                    }}
+                    placeholder="Add tags (e.g., React, Python, Remote)"
+                    onKeyPress={handleKeyPress}
+                    maxLength={30}
                   />
-                  <Button type="button" onClick={addTag} variant="outline">
-                    Add
+                  <Button
+                    type="button"
+                    onClick={addTag}
+                    variant="outline"
+                    disabled={!currentTag.trim() || tags.length >= 10}
+                  >
+                    <Plus className="h-4 w-4" />
                   </Button>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {formData.tags.map((tag, index) => (
-                    <Badge key={index} variant="secondary" className="flex items-center gap-1">
-                      {tag}
-                      <button
-                        type="button"
-                        onClick={() => removeTag(tag)}
-                        className="ml-1 hover:text-red-600"
+                {tags.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {tags.map((tag, index) => (
+                      <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                        {tag}
+                        <button
+                          type="button"
+                          onClick={() => removeTag(tag)}
+                          className="hover:text-red-500"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+                <p className="text-sm text-gray-500 mt-1">
+                  Add up to 10 tags. Press Enter or click + to add.
+                </p>
+              </div>
+
+              {/* Deadline and Source URL */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Deadline *</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !formData.deadline && "text-muted-foreground",
+                          errors.deadline && "border-red-500"
+                        )}
                       >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  ))}
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {formData.deadline ? format(formData.deadline, "PPP") : "Pick a date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={formData.deadline}
+                        onSelect={(date) => handleInputChange('deadline', date)}
+                        disabled={(date) => date <= new Date()}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  {errors.deadline && <p className="text-sm text-red-500 mt-1">{errors.deadline}</p>}
+                </div>
+
+                <div>
+                  <Label htmlFor="sourceUrl">Source URL *</Label>
+                  <Input
+                    id="sourceUrl"
+                    type="url"
+                    value={formData.sourceUrl}
+                    onChange={(e) => handleInputChange('sourceUrl', e.target.value)}
+                    placeholder="https://example.com/apply"
+                    className={errors.sourceUrl ? 'border-red-500' : ''}
+                  />
+                  {errors.sourceUrl && <p className="text-sm text-red-500 mt-1">{errors.sourceUrl}</p>}
                 </div>
               </div>
 
               {/* Submit Button */}
-              <div className="pt-6 border-t">
-                <Button 
-                  type="submit" 
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-lg py-3"
-                  disabled={!isFormValid || isSubmitting}
+              <div className="flex justify-end gap-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => navigate('/opportunities')}
                 >
-                  {isSubmitting ? "Submitting..." : "Submit Opportunity"}
+                  Cancel
                 </Button>
-                <p className="text-sm text-gray-600 text-center mt-3">
-                  By submitting, you agree that the information is accurate and you have the right to share this opportunity.
-                </p>
+                <Button type="submit" disabled={loading}>
+                  {loading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4 mr-2" />
+                      Submit Opportunity
+                    </>
+                  )}
+                </Button>
               </div>
             </form>
+          </CardContent>
+        </Card>
+
+        {/* Info Card */}
+        <Card className="mt-6">
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
+              <div>
+                <h3 className="font-medium text-gray-900 mb-1">Submission Guidelines</h3>
+                <ul className="text-sm text-gray-600 space-y-1">
+                  <li>• All submissions are reviewed by our admin team before approval</li>
+                  <li>• Please ensure all information is accurate and up-to-date</li>
+                  <li>• Include relevant tags to help users discover your opportunity</li>
+                  <li>• Provide a detailed description with clear requirements</li>
+                </ul>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
