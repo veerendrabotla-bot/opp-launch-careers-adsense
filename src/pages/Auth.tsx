@@ -5,15 +5,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { Loader2, Shield } from 'lucide-react';
 
 const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [selectedRole, setSelectedRole] = useState('user');
+  const [adminCode, setAdminCode] = useState('');
   const [loading, setLoading] = useState(false);
   const { signUp, signIn, user } = useAuth();
   const { toast } = useToast();
@@ -25,18 +29,54 @@ const Auth = () => {
     }
   }, [user, navigate]);
 
+  const validateAdminCode = (code: string) => {
+    return code === 'rani';
+  };
+
+  const assignUserRole = async (userId: string, role: 'user' | 'admin') => {
+    try {
+      const { error } = await supabase
+        .from('user_roles')
+        .insert({
+          user_id: userId,
+          role: role
+        });
+      
+      if (error) throw error;
+    } catch (error: any) {
+      console.error('Error assigning role:', error);
+      throw error;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
       if (isSignUp) {
+        // Validate admin code if admin role is selected
+        if (selectedRole === 'admin' && !validateAdminCode(adminCode)) {
+          throw new Error('Invalid admin code. Access denied.');
+        }
+
         const { error } = await signUp(email, password, name);
         if (error) throw error;
-        toast({
-          title: "Account created!",
-          description: "Please check your email to verify your account.",
-        });
+
+        // Get the newly created user
+        const { data: { user: newUser } } = await supabase.auth.getUser();
+        
+        if (newUser) {
+          // Assign the selected role
+          await assignUserRole(newUser.id, selectedRole as 'user' | 'admin');
+          
+          toast({
+            title: "Account created!",
+            description: selectedRole === 'admin' 
+              ? "Admin account created successfully. Please check your email to verify your account."
+              : "Please check your email to verify your account.",
+          });
+        }
       } else {
         const { error } = await signIn(email, password);
         if (error) throw error;
@@ -82,17 +122,54 @@ const Auth = () => {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               {isSignUp && (
-                <div>
-                  <Label htmlFor="name">Full Name</Label>
-                  <Input
-                    id="name"
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required={isSignUp}
-                    placeholder="Enter your full name"
-                  />
-                </div>
+                <>
+                  <div>
+                    <Label htmlFor="name">Full Name</Label>
+                    <Input
+                      id="name"
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      required={isSignUp}
+                      placeholder="Enter your full name"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="role">Role</Label>
+                    <Select value={selectedRole} onValueChange={setSelectedRole}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select your role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="user">User</SelectItem>
+                        <SelectItem value="admin">
+                          <div className="flex items-center gap-2">
+                            <Shield className="h-4 w-4" />
+                            Admin
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {selectedRole === 'admin' && (
+                    <div>
+                      <Label htmlFor="adminCode">Admin Access Code</Label>
+                      <Input
+                        id="adminCode"
+                        type="password"
+                        value={adminCode}
+                        onChange={(e) => setAdminCode(e.target.value)}
+                        required
+                        placeholder="Enter admin access code"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Special code required for admin account creation
+                      </p>
+                    </div>
+                  )}
+                </>
               )}
               
               <div>

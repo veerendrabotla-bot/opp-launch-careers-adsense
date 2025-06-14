@@ -70,6 +70,25 @@ export const useAdmin = () => {
     }
   };
 
+  const markExpiredOpportunities = async () => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      
+      const { error } = await supa base
+        .from('opportunities')
+        .update({ is_expired: true })
+        .lt('deadline', today)
+        .eq('is_expired', false);
+
+      if (error) throw error;
+      
+      // Refresh data after marking expired
+      fetchAllOpportunities();
+    } catch (error: any) {
+      console.error('Error marking expired opportunities:', error);
+    }
+  };
+
   const logAdminAction = async (actionType: string, targetType: string, targetId?: string, details?: any) => {
     if (!user) return;
 
@@ -203,6 +222,7 @@ export const useAdmin = () => {
     if (isAdmin) {
       fetchPendingOpportunities();
       fetchAllOpportunities();
+      markExpiredOpportunities(); // Mark expired opportunities on load
     }
   }, [isAdmin]);
 
@@ -241,6 +261,7 @@ export const useAdmin = () => {
     approveOpportunity,
     rejectOpportunity,
     deleteOpportunity,
+    markExpiredOpportunities,
     refetch: () => {
       fetchPendingOpportunities();
       fetchAllOpportunities();
