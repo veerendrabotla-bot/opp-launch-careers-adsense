@@ -21,6 +21,7 @@ import AdminAnalytics from "./pages/AdminAnalytics";
 import AdminNotifications from "./pages/AdminNotifications";
 import AdminExpired from "./pages/AdminExpired";
 import AdminMonetization from "./pages/AdminMonetization";
+import AdminEmailCampaigns from "./pages/AdminEmailCampaigns";
 import UserManagement from "./pages/UserManagement";
 import Bookmarks from "./pages/Bookmarks";
 import Scholarships from "./pages/Scholarships";
@@ -120,6 +121,16 @@ const App = () => (
                   <ProtectedRoute requireAuth={true} requireAdmin={true}>
                     <AdminLayout>
                       <AdminNotifications />
+                    </AdminLayout>
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/email-campaigns" 
+                element={
+                  <ProtectedRoute requireAuth={true} requireAdmin={true}>
+                    <AdminLayout>
+                      <AdminEmailCampaigns />
                     </AdminLayout>
                   </ProtectedRoute>
                 } 

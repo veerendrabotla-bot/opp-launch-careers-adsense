@@ -22,6 +22,7 @@ const AdminNavigation = () => {
     { path: '/admin/users', label: 'Users', icon: Users },
     { path: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
     { path: '/admin/notifications', label: 'Notifications', icon: Bell },
+    { path: '/admin/email-campaigns', label: 'Email Campaigns', icon: Mail },
     { path: '/admin/expired', label: 'Expired Content', icon: Calendar },
     { path: '/admin/monetization', label: 'Monetization', icon: DollarSign },
     { path: '/admin/settings', label: 'Settings', icon: Settings },

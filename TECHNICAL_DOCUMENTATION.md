@@ -1,5 +1,5 @@
 
-# OpportunityHub - Technical Documentation
+# OpportunityHub - Comprehensive Technical Documentation
 
 ## Table of Contents
 1. [Project Overview](#project-overview)
@@ -11,16 +11,19 @@
 7. [Real-time Features](#real-time-features)
 8. [User Roles & Permissions](#user-roles--permissions)
 9. [Core Features](#core-features)
-10. [Security Implementation](#security-implementation)
-11. [Deployment & Environment](#deployment--environment)
-12. [Performance Optimization](#performance-optimization)
-13. [Testing Strategy](#testing-strategy)
-14. [Future Implementations](#future-implementations)
-15. [Monetization Strategies](#monetization-strategies)
+10. [Admin System](#admin-system)
+11. [Analytics & Tracking](#analytics--tracking)
+12. [Notification System](#notification-system)
+13. [Security Implementation](#security-implementation)
+14. [Deployment & Environment](#deployment--environment)
+15. [Performance Optimization](#performance-optimization)
+16. [Testing Strategy](#testing-strategy)
+17. [Monetization Implementation](#monetization-implementation)
+18. [Future Roadmap](#future-roadmap)
 
 ## Project Overview
 
-OpportunityHub is a comprehensive platform designed to connect students and professionals with internships, contests, events, and scholarship opportunities. The platform features a modern React-based frontend with Supabase backend, providing real-time data synchronization, role-based access control, and AI-powered resume optimization.
+OpportunityHub is a comprehensive platform designed to connect students and professionals with internships, contests, events, and scholarship opportunities. The platform features a modern React-based frontend with Supabase backend, providing real-time data synchronization, role-based access control, AI-powered resume optimization, and comprehensive admin management tools.
 
 ### Key Objectives
 - Centralize opportunity discovery for students and professionals
@@ -28,6 +31,8 @@ OpportunityHub is a comprehensive platform designed to connect students and prof
 - Enable community-driven content submission and curation
 - Implement robust admin controls for content moderation
 - Offer real-time updates and notifications
+- Track user engagement and provide analytics insights
+- Support monetization through premium features
 
 ## Architecture
 
@@ -38,9 +43,10 @@ OpportunityHub is a comprehensive platform designed to connect students and prof
 │   (React/Vite)  │◄──►│   Backend       │◄──►│   APIs          │
 │                 │    │                 │    │                 │
 │ • Pages         │    │ • PostgreSQL    │    │ • AI Services   │
-│ • Components    │    │ • Auth          │    │ • File Storage  │
-│ • Hooks         │    │ • Real-time     │    │ • Email         │
-│ • Context       │    │ • Edge Functions│    │                 │
+│ • Components    │    │ • Auth          │    │ • Email Service │
+│ • Hooks         │    │ • Real-time     │    │ • Analytics     │
+│ • Context       │    │ • Edge Functions│    │ • File Storage  │
+│ • Analytics     │    │ • RLS Policies  │    │                 │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
@@ -48,25 +54,38 @@ OpportunityHub is a comprehensive platform designed to connect students and prof
 ```
 src/
 ├── components/
-│   ├── ui/              # Reusable UI components (shadcn/ui)
-│   └── Layout.tsx       # Main layout wrapper
+│   ├── ui/                    # Reusable UI components (shadcn/ui)
+│   ├── Layout.tsx             # Main layout with navigation and notifications
+│   ├── AdminNavigation.tsx    # Admin panel navigation
+│   ├── ProtectedRoute.tsx     # Route protection component
+│   └── NotificationBell.tsx   # User notification component
 ├── contexts/
-│   └── AuthContext.tsx  # Authentication state management
+│   └── AuthContext.tsx        # Authentication state management
 ├── hooks/
-│   ├── useOpportunities.ts  # Opportunities data management
-│   ├── useBookmarks.ts      # Bookmarking functionality
-│   ├── useAdmin.ts          # Admin operations
-│   └── use-toast.ts         # Toast notifications
+│   ├── useOpportunities.ts    # Opportunities data management
+│   ├── useBookmarks.ts        # Bookmarking functionality
+│   ├── useAdmin.ts            # Admin operations
+│   ├── useAnalytics.ts        # Analytics tracking
+│   ├── useNotifications.ts    # Notification management
+│   ├── usePlatformSettings.ts # Platform configuration
+│   └── use-toast.ts           # Toast notifications
 ├── pages/
-│   ├── Home.tsx         # Landing page
-│   ├── Opportunities.tsx # Opportunities listing
-│   ├── Auth.tsx         # Authentication
-│   ├── Admin.tsx        # Admin panel
-│   └── ...              # Other pages
+│   ├── Home.tsx               # Landing page
+│   ├── Opportunities.tsx      # Opportunities listing with tracking
+│   ├── Auth.tsx               # Authentication
+│   ├── Admin.tsx              # Admin panel
+│   ├── AdminDashboard.tsx     # Admin overview
+│   ├── AdminAnalytics.tsx     # Analytics dashboard
+│   ├── AdminNotifications.tsx # Notification management
+│   ├── AdminEmailCampaigns.tsx # Email campaign management
+│   ├── AdminExpired.tsx       # Expired content management
+│   ├── AdminMonetization.tsx  # Monetization dashboard
+│   ├── AdminSettings.tsx      # Platform settings
+│   └── ...                    # Other pages
 ├── integrations/
-│   └── supabase/        # Database types and client
+│   └── supabase/              # Database types and client
 └── lib/
-    └── utils.ts         # Utility functions
+    └── utils.ts               # Utility functions
 ```
 
 ## Technology Stack
@@ -83,7 +102,7 @@ src/
 
 ### Backend
 - **Supabase**: Backend-as-a-Service platform
-- **PostgreSQL**: Relational database
+- **PostgreSQL**: Relational database with advanced features
 - **Row Level Security (RLS)**: Database-level security
 - **Supabase Auth**: Authentication service
 - **Supabase Realtime**: Real-time subscriptions
@@ -151,27 +170,63 @@ user_roles (
 )
 ```
 
-#### 4. Bookmarks Table
+#### 4. Analytics Table
 ```sql
-bookmarks (
+analytics (
   id uuid PRIMARY KEY,
   user_id uuid REFERENCES auth.users,
+  event_type text NOT NULL,
+  page_url text,
   opportunity_id uuid REFERENCES opportunities,
-  created_at timestamp,
-  UNIQUE(user_id, opportunity_id)
+  user_agent text,
+  ip_address inet,
+  session_id text,
+  metadata jsonb,
+  created_at timestamp
 )
 ```
 
-#### 5. Admin Actions Table
+#### 5. Notifications Table
 ```sql
-admin_actions (
+notifications (
+  id uuid PRIMARY KEY,
+  user_id uuid REFERENCES auth.users,
+  title text NOT NULL,
+  message text NOT NULL,
+  type text NOT NULL DEFAULT 'info',
+  is_read boolean DEFAULT false,
+  action_url text,
+  created_at timestamp,
+  expires_at timestamp
+)
+```
+
+#### 6. Email Campaigns Table
+```sql
+email_campaigns (
   id uuid PRIMARY KEY,
   admin_id uuid REFERENCES auth.users NOT NULL,
-  action_type text NOT NULL,
-  target_type text NOT NULL,
-  target_id uuid,
-  details jsonb,
-  performed_at timestamp
+  title text NOT NULL,
+  subject text NOT NULL,
+  content text NOT NULL,
+  recipient_type text NOT NULL DEFAULT 'all',
+  recipient_emails text[],
+  status text NOT NULL DEFAULT 'draft',
+  sent_at timestamp,
+  scheduled_at timestamp,
+  created_at timestamp
+)
+```
+
+#### 7. Platform Settings Table
+```sql
+platform_settings (
+  id uuid PRIMARY KEY,
+  key text NOT NULL UNIQUE,
+  value jsonb NOT NULL,
+  description text,
+  updated_by uuid REFERENCES auth.users,
+  updated_at timestamp
 )
 ```
 
@@ -186,14 +241,19 @@ admin_actions (
 ### Authentication Flow
 1. **Sign Up**: Email/password registration with email verification
 2. **Sign In**: Email/password authentication
-3. **Session Management**: Automatic token refresh and persistence
-4. **Profile Creation**: Auto-generated user profile on first signup
+3. **Admin Access**: Special "rani" code for admin role assignment
+4. **Session Management**: Automatic token refresh and persistence
+5. **Profile Creation**: Auto-generated user profile on first signup
 
 ### Authorization Levels
 - **Guest**: Can view approved opportunities
 - **User**: Can bookmark, submit opportunities, use AI features
-- **Admin**: Full platform management capabilities
-- **Moderator**: Content moderation capabilities (future)
+- **Admin**: Full platform management capabilities including:
+  - Content moderation
+  - User management
+  - Analytics access
+  - Platform configuration
+  - Email campaign management
 
 ### Security Implementation
 - Row Level Security (RLS) policies on all tables
@@ -231,7 +291,8 @@ export const supabase = createClient<Database>(
 1. **Opportunities Feed**: Live updates when new opportunities are added/approved
 2. **Bookmarks**: Real-time bookmark synchronization
 3. **Admin Panel**: Live submission status updates
-4. **User Presence**: Online status tracking (ready for implementation)
+4. **Notifications**: Real-time notification delivery
+5. **Analytics**: Live tracking data updates
 
 ### Real-time Implementation Example
 ```typescript
@@ -258,16 +319,20 @@ useEffect(() => {
 Admin
 ├── Manage all opportunities
 ├── User role management
-├── Platform analytics
+├── Platform analytics access
 ├── Content moderation
-└── System configuration
+├── System configuration
+├── Email campaign management
+├── Notification management
+└── Monetization oversight
 
 User
 ├── View approved opportunities
 ├── Submit opportunities
 ├── Bookmark opportunities
 ├── Use AI resume features
-└── Profile management
+├── Profile management
+└── Receive notifications
 
 Guest
 └── View approved opportunities (read-only)
@@ -283,15 +348,19 @@ Guest
 | Approve/Reject | ❌ | ❌ | ✅ |
 | Delete Content | ❌ | ❌ | ✅ |
 | User Management | ❌ | ❌ | ✅ |
+| Analytics Access | ❌ | ❌ | ✅ |
+| Platform Settings | ❌ | ❌ | ✅ |
+| Email Campaigns | ❌ | ❌ | ✅ |
 
 ## Core Features
 
 ### 1. Opportunity Management
-- **Discovery**: Advanced filtering and search
-- **Submission**: User-generated content with moderation
+- **Discovery**: Advanced filtering and search with analytics tracking
+- **Submission**: User-generated content with moderation queue
 - **Categorization**: Type, domain, location-based organization
 - **Bookmarking**: Personal opportunity collections
 - **Real-time Updates**: Live content synchronization
+- **Expiration Management**: Automatic content lifecycle management
 
 ### 2. AI Resume Tailoring
 - **Upload Processing**: Resume file analysis
@@ -301,18 +370,106 @@ Guest
 - **Match Scoring**: Compatibility rating system
 
 ### 3. Admin Panel
-- **Content Moderation**: Approve/reject submissions
+- **Content Moderation**: Approve/reject submissions with reasons
 - **User Management**: Role assignment and user oversight
-- **Analytics Dashboard**: Platform usage statistics
+- **Analytics Dashboard**: Comprehensive usage statistics
 - **Audit Logging**: Complete action history
 - **Bulk Operations**: Efficient content management
+- **Platform Settings**: Configurable system parameters
+- **Email Campaigns**: Bulk communication tools
+- **Notification Management**: System-wide messaging
 
 ### 4. User Experience
 - **Responsive Design**: Mobile-first approach
-- **Progressive Web App**: Offline capabilities (future)
-- **Real-time Notifications**: Instant updates
+- **Real-time Notifications**: Instant updates via notification bell
+- **Advanced Search**: Comprehensive filtering and search
 - **Social Features**: Sharing and community interaction
 - **Accessibility**: WCAG 2.1 compliance
+- **Progressive Enhancement**: Graceful degradation
+
+## Admin System
+
+### Admin Dashboard Features
+1. **Overview Statistics**: Key metrics and KPIs
+2. **Quick Actions**: Common administrative tasks
+3. **Recent Activity**: Latest platform activity
+4. **System Health**: Platform status indicators
+
+### Content Management
+- **Pending Approvals**: Queue of submitted opportunities
+- **Content Review**: Detailed moderation tools
+- **Bulk Actions**: Mass approve/reject functionality
+- **Expiration Management**: Automated cleanup tools
+
+### User Management
+- **User List**: Complete user directory
+- **Role Assignment**: Admin role management
+- **Activity Monitoring**: User engagement tracking
+- **Account Management**: User account controls
+
+### Analytics Dashboard
+- **User Engagement**: Detailed usage statistics
+- **Popular Content**: Most viewed opportunities
+- **Search Analytics**: Search term tracking
+- **Performance Metrics**: Platform performance data
+
+### Email Campaign Management
+- **Campaign Creation**: Rich email composer
+- **Recipient Targeting**: Flexible targeting options
+- **Scheduling**: Time-based sending
+- **Performance Tracking**: Open and click rates
+
+## Analytics & Tracking
+
+### Implemented Tracking Events
+1. **Page Views**: All page navigation
+2. **Search Queries**: User search behavior
+3. **Filter Usage**: Filter application tracking
+4. **Opportunity Views**: Content engagement
+5. **External Clicks**: Application link clicks
+6. **Bookmark Actions**: Save/unsave tracking
+7. **User Authentication**: Login/logout events
+8. **Admin Actions**: Administrative activity
+
+### Analytics Data Structure
+```typescript
+{
+  event_type: string,
+  user_id: uuid,
+  page_url: string,
+  opportunity_id: uuid,
+  session_id: string,
+  metadata: jsonb,
+  timestamp: datetime
+}
+```
+
+### Admin Analytics Features
+- **Real-time Dashboard**: Live metrics
+- **Historical Trends**: Time-based analysis
+- **User Behavior**: Engagement patterns
+- **Content Performance**: Opportunity success metrics
+
+## Notification System
+
+### Notification Types
+- **System Notifications**: Platform announcements
+- **Content Updates**: New opportunities
+- **Admin Alerts**: Administrative messages
+- **Personal Reminders**: Deadline notifications
+
+### Notification Features
+- **Real-time Delivery**: Instant notification delivery
+- **Notification Bell**: Unread count indicator
+- **Action URLs**: Direct links to relevant content
+- **Expiration**: Automatic cleanup of old notifications
+- **Read Status**: Mark as read functionality
+
+### Admin Notification Tools
+- **Broadcast Messages**: System-wide notifications
+- **Targeted Messaging**: User-specific notifications
+- **Scheduled Notifications**: Time-based delivery
+- **Template Management**: Reusable notification templates
 
 ## Security Implementation
 
@@ -321,6 +478,7 @@ Guest
 - Parameterized queries to prevent SQL injection
 - Role-based access control
 - Audit trails for all admin actions
+- Secure foreign key relationships
 
 ### Application Security
 - Input validation and sanitization
@@ -332,7 +490,7 @@ Guest
 ### Data Privacy
 - GDPR compliance ready
 - Data anonymization options
-- User data export/deletion
+- User data export/deletion capabilities
 - Privacy policy implementation
 - Cookie consent management
 
@@ -345,7 +503,7 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
 ### Deployment Platforms
-- **Recommended**: Vercel, Netlify
+- **Recommended**: Vercel, Netlify, Cloudflare Pages
 - **Requirements**: Node.js 18+, Static hosting
 - **Build Command**: `npm run build`
 - **Output Directory**: `dist/`
@@ -364,6 +522,7 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 - **Caching Strategy**: React Query for data caching
 - **Bundle Optimization**: Tree shaking and minification
 - **Database Indexing**: Optimized query performance
+- **Real-time Efficiency**: Selective subscriptions
 
 ### Performance Metrics Targets
 - **First Contentful Paint**: < 1.5s
@@ -385,157 +544,107 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 - **Cypress**: End-to-end testing
 - **Lighthouse**: Performance auditing
 
-## Future Implementations
+## Monetization Implementation
 
-### Phase 1: Core Enhancements (Next 3 months)
-1. **Email Notifications**
-   - Opportunity digest emails
-   - Application deadline reminders
-   - Admin action notifications
-   
-2. **Advanced Search & Filtering**
-   - Elasticsearch integration
-   - Saved search preferences
-   - Advanced filter combinations
-   
-3. **User Profile Enhancements**
-   - Skill tracking and verification
-   - Achievement badges
-   - Activity timeline
+### Current Monetization Features
+1. **Premium Subscriptions**: Enhanced features for paying users
+2. **Enterprise Solutions**: Corporate packages
+3. **Featured Listings**: Premium opportunity placement
+4. **Analytics Insights**: Data-driven insights for organizations
 
-### Phase 2: AI & Analytics (Months 4-6)
-1. **Enhanced AI Features**
-   - GPT integration for resume improvement
-   - Interview question generation
-   - Career path recommendations
-   
-2. **Analytics Dashboard**
-   - User engagement metrics
-   - Opportunity success rates
-   - Platform usage statistics
-   
-3. **Recommendation Engine**
-   - Personalized opportunity suggestions
-   - Machine learning-based matching
-   - User behavior analysis
+### Revenue Tracking
+- **Subscription Management**: User tier tracking
+- **Usage Analytics**: Feature utilization metrics
+- **Conversion Funnel**: Free-to-paid conversion tracking
+- **Revenue Dashboard**: Financial performance metrics
 
-### Phase 3: Community & Social (Months 7-9)
-1. **Community Features**
-   - Discussion forums
-   - User reviews and ratings
-   - Mentorship matching
-   
-2. **Social Integration**
-   - LinkedIn integration
-   - Social sharing optimization
-   - Referral program
-   
-3. **Mobile Application**
-   - React Native development
-   - Push notifications
-   - Offline capabilities
+### Pricing Tiers
+- **Free**: Basic opportunity browsing
+- **Premium**: Enhanced features and analytics
+- **Enterprise**: Full feature access and support
 
-### Phase 4: Enterprise & Premium (Months 10-12)
-1. **Enterprise Features**
-   - Company dashboard
-   - Bulk opportunity posting
-   - Candidate sourcing tools
+## Future Roadmap
+
+### Phase 1: Enhanced Features (Next 3 months)
+1. **Email Integration**
+   - SMTP configuration for email campaigns
+   - Newsletter subscriptions
+   - Automated reminder emails
    
-2. **Premium Services**
-   - Priority support
-   - Advanced analytics
-   - Custom branding options
+2. **Advanced AI Features**
+   - GPT integration for content generation
+   - Personalized recommendations
+   - Interview preparation tools
    
-3. **API Marketplace**
+3. **Mobile Optimization**
+   - Progressive Web App features
+   - Mobile-specific UI improvements
+   - Push notification support
+
+### Phase 2: Scale & Performance (Months 4-6)
+1. **Performance Enhancements**
+   - CDN implementation
+   - Advanced caching strategies
+   - Database optimization
+   
+2. **API Expansion**
+   - Public API development
    - Third-party integrations
    - Webhook system
-   - Developer documentation
+   
+3. **Enterprise Features**
+   - White-label solutions
+   - Custom branding
+   - Advanced analytics
 
-## Monetization Strategies
+### Phase 3: AI & Automation (Months 7-9)
+1. **Machine Learning**
+   - Predictive analytics
+   - Content recommendation engine
+   - Automated content curation
+   
+2. **Workflow Automation**
+   - Automated moderation
+   - Smart notifications
+   - Dynamic pricing
 
-### 1. Freemium Model
-**Free Tier:**
-- Basic opportunity browsing
-- Limited bookmarks (50)
-- Basic resume review
+### Phase 4: Platform Expansion (Months 10-12)
+1. **Multi-platform Support**
+   - Mobile applications
+   - Desktop applications
+   - Browser extensions
+   
+2. **Global Expansion**
+   - Multi-language support
+   - Regional customization
+   - Local compliance
 
-**Premium Tier ($9.99/month):**
-- Unlimited bookmarks
-- Advanced AI resume tailoring
-- Priority customer support
-- Early access to new opportunities
-- Email notifications and reminders
-
-### 2. Enterprise Solutions
-**For Educational Institutions ($99/month):**
-- Custom branded portal
-- Bulk student account management
-- Analytics dashboard
-- Integration with existing systems
-- Dedicated support
-
-**For Companies ($199/month):**
-- Premium opportunity listings
-- Enhanced visibility
-- Candidate filtering tools
-- Application management system
-- Direct messaging with candidates
-
-### 3. Transaction-Based Revenue
-- **Application Fees**: Small fee per application (1-2%)
-- **Success Fees**: Commission on successful placements (5-10%)
-- **Featured Listings**: Premium placement for opportunities
-- **Sponsored Content**: Promoted opportunities and events
-
-### 4. Additional Revenue Streams
-- **Certification Programs**: Skill verification certificates
-- **Career Coaching**: One-on-one guidance sessions
-- **Workshop Access**: Premium educational content
-- **Data Insights**: Anonymized market reports for institutions
-- **White-label Solutions**: Platform licensing to other organizations
-
-### 5. Partnership Revenue
-- **Affiliate Marketing**: Commission from course/tool recommendations
-- **Corporate Partnerships**: Revenue sharing with recruitment agencies
-- **Educational Partnerships**: Content licensing to universities
-- **Technology Partnerships**: Integration revenue sharing
-
-### Revenue Projections (Year 1)
-- **Month 1-3**: $0 (Free beta, user acquisition)
-- **Month 4-6**: $5,000/month (Premium subscriptions)
-- **Month 7-9**: $15,000/month (Enterprise clients)
-- **Month 10-12**: $30,000/month (Full monetization)
-
-### Key Success Metrics
-- **User Acquisition Cost (CAC)**: < $20
-- **Customer Lifetime Value (CLV)**: > $200
-- **Monthly Recurring Revenue (MRR)**: Target $50k by year-end
-- **Churn Rate**: < 5% monthly
-- **Conversion Rate**: 10-15% free to paid
-
-## Technical Debt & Improvements Needed
+## Technical Debt & Improvements
 
 ### Immediate Priorities
-1. **Error Handling**: Comprehensive error boundaries and logging
-2. **Loading States**: Better UX during data fetching
-3. **Form Validation**: Enhanced client-side validation
+1. **Error Handling**: Comprehensive error boundaries
+2. **Loading States**: Enhanced UX during operations
+3. **Form Validation**: Client-side validation improvements
 4. **Accessibility**: ARIA labels and keyboard navigation
 5. **SEO Optimization**: Meta tags and structured data
 
 ### Medium-term Improvements
-1. **State Management**: Consider Redux for complex state
-2. **Testing Coverage**: Achieve 80%+ test coverage
-3. **Documentation**: Comprehensive API documentation
+1. **State Management**: Advanced state management patterns
+2. **Testing Coverage**: Comprehensive test suite
+3. **Documentation**: Complete API documentation
 4. **Monitoring**: Error tracking and performance monitoring
 5. **Internationalization**: Multi-language support
 
 ### Long-term Architecture
-1. **Microservices**: Split into domain-specific services
-2. **CDN Integration**: Global content delivery
-3. **Advanced Caching**: Redis for session management
-4. **Queue System**: Background job processing
-5. **Containerization**: Docker deployment strategy
+1. **Microservices**: Domain-specific service separation
+2. **Advanced Analytics**: Real-time data processing
+3. **Machine Learning**: AI-powered features
+4. **Scalability**: Horizontal scaling capabilities
 
 ---
 
-This technical documentation provides a comprehensive overview of the OpportunityHub platform. It should be updated regularly as new features are implemented and architectural decisions are made.
+This technical documentation provides a comprehensive overview of the OpportunityHub platform architecture, features, and implementation details. It should be updated regularly as new features are developed and architectural decisions are made.
+
+**Current Status**: All core features implemented and operational
+**Last Updated**: 2024-06-15
+**Version**: 1.0.0
