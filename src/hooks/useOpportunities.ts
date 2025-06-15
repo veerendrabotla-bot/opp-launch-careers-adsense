@@ -21,6 +21,7 @@ export const useOpportunities = (filters?: {
         .from('opportunities')
         .select('*')
         .eq('is_approved', true)
+        .gte('deadline', new Date().toISOString().split('T')[0]) // Only show future opportunities
         .order('created_at', { ascending: false });
 
       if (filters?.type && filters.type !== 'All') {

@@ -92,12 +92,13 @@ const AdminEmailCampaigns = () => {
   };
 
   const getStatusBadge = (status: string) => {
-    const variants = {
+    const variants: { [key: string]: "default" | "destructive" | "outline" | "secondary" } = {
       draft: 'secondary',
       sent: 'default',
       scheduled: 'outline'
     };
-    return <Badge variant={variants[status as keyof typeof variants] || 'secondary'}>{status}</Badge>;
+    const variant = variants[status] || 'secondary';
+    return <Badge variant={variant}>{status}</Badge>;
   };
 
   return (
@@ -240,6 +241,16 @@ const AdminEmailCampaigns = () => {
             </CardContent>
           </Card>
         ))}
+        
+        {campaigns.length === 0 && (
+          <Card>
+            <CardContent className="p-8 text-center text-gray-500">
+              <Mail className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+              <p>No email campaigns created yet.</p>
+              <p className="text-sm">Create your first campaign to get started.</p>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
