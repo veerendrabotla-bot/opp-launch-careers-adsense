@@ -39,6 +39,53 @@ export type Database = {
         }
         Relationships: []
       }
+      analytics: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          ip_address: unknown | null
+          metadata: Json | null
+          opportunity_id: string | null
+          page_url: string | null
+          session_id: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          ip_address?: unknown | null
+          metadata?: Json | null
+          opportunity_id?: string | null
+          page_url?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          ip_address?: unknown | null
+          metadata?: Json | null
+          opportunity_id?: string | null
+          page_url?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analytics_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bookmarks: {
         Row: {
           created_at: string
@@ -68,6 +115,48 @@ export type Database = {
           },
         ]
       }
+      email_campaigns: {
+        Row: {
+          admin_id: string
+          content: string
+          created_at: string
+          id: string
+          recipient_emails: string[] | null
+          recipient_type: string
+          scheduled_at: string | null
+          sent_at: string | null
+          status: string
+          subject: string
+          title: string
+        }
+        Insert: {
+          admin_id: string
+          content: string
+          created_at?: string
+          id?: string
+          recipient_emails?: string[] | null
+          recipient_type?: string
+          scheduled_at?: string | null
+          sent_at?: string | null
+          status?: string
+          subject: string
+          title: string
+        }
+        Update: {
+          admin_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          recipient_emails?: string[] | null
+          recipient_type?: string
+          scheduled_at?: string | null
+          sent_at?: string | null
+          status?: string
+          subject?: string
+          title?: string
+        }
+        Relationships: []
+      }
       job_descriptions: {
         Row: {
           created_at: string
@@ -88,6 +177,42 @@ export type Database = {
           extracted_keywords?: string[] | null
           id?: string
           text?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          action_url: string | null
+          created_at: string
+          expires_at: string | null
+          id: string
+          is_read: boolean | null
+          message: string
+          title: string
+          type: string
+          user_id: string | null
+        }
+        Insert: {
+          action_url?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message: string
+          title: string
+          type?: string
+          user_id?: string | null
+        }
+        Update: {
+          action_url?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          title?: string
+          type?: string
           user_id?: string | null
         }
         Relationships: []
@@ -158,6 +283,33 @@ export type Database = {
           type?: string
           updated_at?: string
           views?: number | null
+        }
+        Relationships: []
+      }
+      platform_settings: {
+        Row: {
+          description: string | null
+          id: string
+          key: string
+          updated_at: string
+          updated_by: string | null
+          value: Json
+        }
+        Insert: {
+          description?: string | null
+          id?: string
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+          value: Json
+        }
+        Update: {
+          description?: string | null
+          id?: string
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: Json
         }
         Relationships: []
       }

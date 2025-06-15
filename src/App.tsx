@@ -17,6 +17,10 @@ import Dashboard from "./pages/Dashboard";
 import Admin from "./pages/Admin";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminSettings from "./pages/AdminSettings";
+import AdminAnalytics from "./pages/AdminAnalytics";
+import AdminNotifications from "./pages/AdminNotifications";
+import AdminExpired from "./pages/AdminExpired";
+import AdminMonetization from "./pages/AdminMonetization";
 import UserManagement from "./pages/UserManagement";
 import Bookmarks from "./pages/Bookmarks";
 import Scholarships from "./pages/Scholarships";
@@ -96,6 +100,46 @@ const App = () => (
                   <ProtectedRoute requireAuth={true} requireAdmin={true}>
                     <AdminLayout>
                       <UserManagement />
+                    </AdminLayout>
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/analytics" 
+                element={
+                  <ProtectedRoute requireAuth={true} requireAdmin={true}>
+                    <AdminLayout>
+                      <AdminAnalytics />
+                    </AdminLayout>
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/notifications" 
+                element={
+                  <ProtectedRoute requireAuth={true} requireAdmin={true}>
+                    <AdminLayout>
+                      <AdminNotifications />
+                    </AdminLayout>
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/expired" 
+                element={
+                  <ProtectedRoute requireAuth={true} requireAdmin={true}>
+                    <AdminLayout>
+                      <AdminExpired />
+                    </AdminLayout>
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/monetization" 
+                element={
+                  <ProtectedRoute requireAuth={true} requireAdmin={true}>
+                    <AdminLayout>
+                      <AdminMonetization />
                     </AdminLayout>
                   </ProtectedRoute>
                 } 
