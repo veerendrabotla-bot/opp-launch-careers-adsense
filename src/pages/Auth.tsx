@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Shield } from 'lucide-react';
+import { Loader2, Shield, User, Crown } from 'lucide-react';
 
 const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -17,7 +17,7 @@ const Auth = () => {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [selectedRole, setSelectedRole] = useState('user');
-  const [adminCode, setAdminCode] = useState('');
+  const [accessCode, setAccessCode] = useState('');
   const [loading, setLoading] = useState(false);
   const { signUp, signIn, user } = useAuth();
   const { toast } = useToast();
@@ -29,11 +29,11 @@ const Auth = () => {
     }
   }, [user, navigate]);
 
-  const validateAdminCode = (code: string) => {
+  const validateAccessCode = (code: string) => {
     return code === 'rani';
   };
 
-  const assignUserRole = async (userId: string, role: 'user' | 'admin') => {
+  const assignUserRole = async (userId: string, role: 'user' | 'admin' | 'moderator') => {
     try {
       const { error } = await supabase
         .from('user_roles')
@@ -54,15 +54,19 @@ const Auth = () => {
     }
   };
 
+  const requiresAccessCode = (role: string) => {
+    return role === 'admin' || role === 'moderator';
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
       if (isSignUp) {
-        // Validate admin code if admin role is selected
-        if (selectedRole === 'admin' && !validateAdminCode(adminCode)) {
-          throw new Error('Invalid admin code. Access denied.');
+        // Validate access code if admin or moderator role is selected
+        if (requiresAccessCode(selectedRole) && !validateAccessCode(accessCode)) {
+          throw new Error('Invalid access code. Access denied.');
         }
 
         console.log('Starting signup process...');
@@ -84,13 +88,17 @@ const Auth = () => {
           console.log('User created:', newUser.id, 'Assigning role:', selectedRole);
           
           // Assign the selected role
-          await assignUserRole(newUser.id, selectedRole as 'user' | 'admin');
+          await assignUserRole(newUser.id, selectedRole as 'user' | 'admin' | 'moderator');
+          
+          const roleMessages = {
+            user: "Please check your email to verify your account.",
+            admin: "Admin account created successfully. Please check your email to verify your account.",
+            moderator: "Moderator account created successfully. Please check your email to verify your account."
+          };
           
           toast({
             title: "Account created!",
-            description: selectedRole === 'admin' 
-              ? "Admin account created successfully. Please check your email to verify your account."
-              : "Please check your email to verify your account.",
+            description: roleMessages[selectedRole as keyof typeof roleMessages],
           });
         } else {
           throw new Error('User creation failed - no user returned');
@@ -113,6 +121,28 @@ const Auth = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const getRoleIcon = (role: string) => {
+    switch (role) {
+      case 'admin':
+        return <Shield className="h-4 w-4" />;
+      case 'moderator':
+        return <Crown className="h-4 w-4" />;
+      default:
+        return <User className="h-4 w-4" />;
+    }
+  };
+
+  const getRoleDescription = (role: string) => {
+    switch (role) {
+      case 'admin':
+        return 'Full system access and management capabilities';
+      case 'moderator':
+        return 'Content moderation and user management';
+      default:
+        return 'Standard user access to opportunities and features';
     }
   };
 
@@ -155,36 +185,61 @@ const Auth = () => {
                   </div>
 
                   <div>
-                    <Label htmlFor="role">Role</Label>
+                    <Label htmlFor="role">Account Type</Label>
                     <Select value={selectedRole} onValueChange={setSelectedRole}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select your role" />
+                        <SelectValue placeholder="Select your account type" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="user">User</SelectItem>
+                        <SelectItem value="user">
+                          <div className="flex items-center gap-2">
+                            {getRoleIcon('user')}
+                            <div>
+                              <div className="font-medium">User</div>
+                              <div className="text-xs text-gray-500">Standard access</div>
+                            </div>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="moderator">
+                          <div className="flex items-center gap-2">
+                            {getRoleIcon('moderator')}
+                            <div>
+                              <div className="font-medium">Moderator</div>
+                              <div className="text-xs text-gray-500">Content moderation</div>
+                            </div>
+                          </div>
+                        </SelectItem>
                         <SelectItem value="admin">
                           <div className="flex items-center gap-2">
-                            <Shield className="h-4 w-4" />
-                            Admin
+                            {getRoleIcon('admin')}
+                            <div>
+                              <div className="font-medium">Admin</div>
+                              <div className="text-xs text-gray-500">Full system access</div>
+                            </div>
                           </div>
                         </SelectItem>
                       </SelectContent>
                     </Select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {getRoleDescription(selectedRole)}
+                    </p>
                   </div>
 
-                  {selectedRole === 'admin' && (
+                  {requiresAccessCode(selectedRole) && (
                     <div>
-                      <Label htmlFor="adminCode">Admin Access Code</Label>
+                      <Label htmlFor="accessCode">
+                        {selectedRole === 'admin' ? 'Admin' : 'Moderator'} Access Code
+                      </Label>
                       <Input
-                        id="adminCode"
+                        id="accessCode"
                         type="password"
-                        value={adminCode}
-                        onChange={(e) => setAdminCode(e.target.value)}
+                        value={accessCode}
+                        onChange={(e) => setAccessCode(e.target.value)}
                         required
-                        placeholder="Enter admin access code"
+                        placeholder={`Enter ${selectedRole} access code`}
                       />
                       <p className="text-xs text-gray-500 mt-1">
-                        Special code required for admin account creation
+                        Special code required for {selectedRole} account creation
                       </p>
                     </div>
                   )}

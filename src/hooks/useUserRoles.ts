@@ -16,27 +16,39 @@ export const useUserRoles = () => {
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [loading, setLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isModerator, setIsModerator] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const checkAdminStatus = async () => {
+  const checkUserStatus = async () => {
     if (!user) return;
     
     try {
-      const { data, error } = await supabase.rpc('is_admin', {
+      // Check admin status
+      const { data: adminData, error: adminError } = await supabase.rpc('is_admin', {
         _user_id: user.id
       });
       
-      if (error) throw error;
-      setIsAdmin(data);
+      if (adminError) throw adminError;
+      setIsAdmin(adminData);
+
+      // Check moderator status
+      const { data: moderatorData, error: moderatorError } = await supabase.rpc('has_role', {
+        _user_id: user.id,
+        _role: 'moderator'
+      });
+      
+      if (moderatorError) throw moderatorError;
+      setIsModerator(moderatorData);
     } catch (error: any) {
-      console.error('Error checking admin status:', error);
+      console.error('Error checking user status:', error);
       setIsAdmin(false);
+      setIsModerator(false);
     }
   };
 
   const fetchUsers = async () => {
-    if (!isAdmin) return;
+    if (!isAdmin && !isModerator) return;
 
     setLoading(true);
     try {
@@ -75,7 +87,17 @@ export const useUserRoles = () => {
   };
 
   const assignRole = async (userId: string, role: 'user' | 'admin' | 'moderator') => {
-    if (!user || !isAdmin) return;
+    if (!user || (!isAdmin && !isModerator)) return;
+
+    // Only admins can assign admin roles
+    if (role === 'admin' && !isAdmin) {
+      toast({
+        title: "Access Denied",
+        description: "Only admins can assign admin roles.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
       const { error } = await supabase
@@ -117,7 +139,17 @@ export const useUserRoles = () => {
   };
 
   const removeRole = async (userId: string, role: 'user' | 'admin' | 'moderator') => {
-    if (!user || !isAdmin) return;
+    if (!user || (!isAdmin && !isModerator)) return;
+
+    // Only admins can remove admin roles
+    if (role === 'admin' && !isAdmin) {
+      toast({
+        title: "Access Denied",
+        description: "Only admins can remove admin roles.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
       const { error } = await supabase
@@ -156,19 +188,19 @@ export const useUserRoles = () => {
 
   useEffect(() => {
     if (user) {
-      checkAdminStatus();
+      checkUserStatus();
     }
   }, [user]);
 
   useEffect(() => {
-    if (isAdmin) {
+    if (isAdmin || isModerator) {
       fetchUsers();
     }
-  }, [isAdmin]);
+  }, [isAdmin, isModerator]);
 
   // Set up real-time subscription for user roles
   useEffect(() => {
-    if (!isAdmin) return;
+    if (!isAdmin && !isModerator) return;
 
     const channel = supabase
       .channel('user-roles-changes')
@@ -188,12 +220,14 @@ export const useUserRoles = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [isAdmin]);
+  }, [isAdmin, isModerator]);
 
   return {
     users,
     loading,
     isAdmin,
+    isModerator,
+    hasManagementAccess: isAdmin || isModerator,
     assignRole,
     removeRole,
     refetch: fetchUsers
