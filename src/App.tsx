@@ -29,6 +29,12 @@ import UserManagement from "./pages/UserManagement";
 import Bookmarks from "./pages/Bookmarks";
 import Scholarships from "./pages/Scholarships";
 import Auth from "./pages/Auth";
+import HelpCenter from "./pages/HelpCenter";
+import Contact from "./pages/Contact";
+import Privacy from "./pages/Privacy";
+import About from "./pages/About";
+import Blog from "./pages/Blog";
+import Careers from "./pages/Careers";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -60,6 +66,15 @@ const App = () => (
               <Route path="/" element={<Home />} />
               <Route path="/opportunities" element={<Opportunities />} />
               <Route path="/opportunities/:id" element={<OpportunityDetail />} />
+              <Route path="/help" element={<HelpCenter />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/blog" element={<Blog />} />
+              <Route path="/careers" element={<Careers />} />
+              <Route path="/scholarships" element={<Scholarships />} />
+              <Route path="/auth" element={<Auth />} />
+              
               <Route 
                 path="/submit" 
                 element={
@@ -81,6 +96,14 @@ const App = () => (
                 element={
                   <ProtectedRoute requireAuth={true}>
                     <Dashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/bookmarks" 
+                element={
+                  <ProtectedRoute requireAuth={true}>
+                    <Bookmarks />
                   </ProtectedRoute>
                 } 
               />
@@ -229,16 +252,6 @@ const App = () => (
                 } 
               />
               
-              <Route 
-                path="/bookmarks" 
-                element={
-                  <ProtectedRoute requireAuth={true}>
-                    <Bookmarks />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route path="/scholarships" element={<Scholarships />} />
-              <Route path="/auth" element={<Auth />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Layout>

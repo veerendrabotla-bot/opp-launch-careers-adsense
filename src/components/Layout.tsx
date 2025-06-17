@@ -148,19 +148,19 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
               </h3>
               <ul className="mt-4 space-y-4">
                 <li>
-                  <a href="#" className="text-base text-gray-500 hover:text-gray-900">
+                  <Link to="/help" className="text-base text-gray-500 hover:text-gray-900">
                     Help Center
-                  </a>
+                  </Link>
                 </li>
                 <li>
-                  <a href="#" className="text-base text-gray-500 hover:text-gray-900">
+                  <Link to="/contact" className="text-base text-gray-500 hover:text-gray-900">
                     Contact Us
-                  </a>
+                  </Link>
                 </li>
                 <li>
-                  <a href="#" className="text-base text-gray-500 hover:text-gray-900">
+                  <Link to="/privacy" className="text-base text-gray-500 hover:text-gray-900">
                     Privacy Policy
-                  </a>
+                  </Link>
                 </li>
               </ul>
             </div>
@@ -170,19 +170,19 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
               </h3>
               <ul className="mt-4 space-y-4">
                 <li>
-                  <a href="#" className="text-base text-gray-500 hover:text-gray-900">
+                  <Link to="/about" className="text-base text-gray-500 hover:text-gray-900">
                     About Us
-                  </a>
+                  </Link>
                 </li>
                 <li>
-                  <a href="#" className="text-base text-gray-500 hover:text-gray-900">
+                  <Link to="/blog" className="text-base text-gray-500 hover:text-gray-900">
                     Blog
-                  </a>
+                  </Link>
                 </li>
                 <li>
-                  <a href="#" className="text-base text-gray-500 hover:text-gray-900">
+                  <Link to="/careers" className="text-base text-gray-500 hover:text-gray-900">
                     Careers
-                  </a>
+                  </Link>
                 </li>
               </ul>
             </div>
@@ -192,17 +192,17 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
               </h3>
               <ul className="mt-4 space-y-4">
                 <li>
-                  <a href="#" className="text-base text-gray-500 hover:text-gray-900">
+                  <a href="https://twitter.com/opportunityhub" target="_blank" rel="noopener noreferrer" className="text-base text-gray-500 hover:text-gray-900">
                     Twitter
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="text-base text-gray-500 hover:text-gray-900">
+                  <a href="https://linkedin.com/company/opportunityhub" target="_blank" rel="noopener noreferrer" className="text-base text-gray-500 hover:text-gray-900">
                     LinkedIn
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="text-base text-gray-500 hover:text-gray-900">
+                  <a href="https://github.com/opportunityhub" target="_blank" rel="noopener noreferrer" className="text-base text-gray-500 hover:text-gray-900">
                     GitHub
                   </a>
                 </li>

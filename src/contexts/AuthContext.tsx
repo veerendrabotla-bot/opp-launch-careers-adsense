@@ -29,6 +29,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const cleanupAuthState = () => {
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+        localStorage.removeItem(key);
+      }
+    });
+    localStorage.removeItem('pendingUserRole');
+  };
+
   const assignUserRole = async (userId: string, role: 'user' | 'admin' | 'moderator') => {
     try {
       const { error } = await supabase
@@ -46,13 +55,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log(`Successfully assigned ${role} role to user ${userId}`);
     } catch (error: any) {
       console.error('Error in assignUserRole:', error);
-      // Don't throw here to avoid blocking the auth flow
     }
   };
 
   const fetchUserRole = async (userId: string) => {
     try {
-      // Check if user is admin
       const { data: isAdminData, error: adminError } = await supabase.rpc('is_admin', {
         _user_id: userId
       });
@@ -64,7 +71,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return 'admin';
       }
 
-      // Check if user is moderator
       const { data: isModeratorData, error: moderatorError } = await supabase.rpc('has_role', {
         _user_id: userId,
         _role: 'moderator'
@@ -77,7 +83,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return 'moderator';
       }
 
-      // Default to user role
       setUserRole('user');
       return 'user';
     } catch (error: any) {
@@ -88,76 +93,116 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    // Set up auth state listener
+    let mounted = true;
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state changed:', event, session?.user?.email);
+        
+        if (!mounted) return;
+
         setSession(session);
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          // Fetch user role
-          await fetchUserRole(session.user.id);
+          const role = await fetchUserRole(session.user.id);
           
-          // Handle role assignment after email confirmation
           const pendingRole = localStorage.getItem('pendingUserRole');
           if (pendingRole && pendingRole !== 'user') {
             console.log('Assigning pending role:', pendingRole);
             await assignUserRole(session.user.id, pendingRole as 'user' | 'admin' | 'moderator');
             localStorage.removeItem('pendingUserRole');
-            // Refresh role after assignment
             await fetchUserRole(session.user.id);
           }
         } else {
           setUserRole(null);
         }
         
-        setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     );
 
-    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchUserRole(session.user.id);
-      } else {
-        setLoading(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const signUp = async (email: string, password: string, name?: string) => {
-    const redirectUrl = `${window.location.origin}/`;
-    
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl,
-        data: {
-          name: name || ''
+      if (mounted) {
+        setSession(session);
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          fetchUserRole(session.user.id).finally(() => {
+            if (mounted) setLoading(false);
+          });
+        } else {
+          setLoading(false);
         }
       }
     });
-    return { error };
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const signUp = async (email: string, password: string, name?: string) => {
+    try {
+      const redirectUrl = `${window.location.origin}/`;
+      
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: {
+            name: name || ''
+          }
+        }
+      });
+      return { error };
+    } catch (error) {
+      return { error };
+    }
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { error };
+    try {
+      cleanupAuthState();
+      
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) throw error;
+      
+      // Force a page refresh after successful login to ensure clean state
+      if (data.user) {
+        setTimeout(() => {
+          window.location.href = '/dashboard';
+        }, 100);
+      }
+      
+      return { error: null };
+    } catch (error) {
+      return { error };
+    }
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    setUserRole(null);
-    return { error };
+    try {
+      cleanupAuthState();
+      const { error } = await supabase.auth.signOut({ scope: 'global' });
+      setUserRole(null);
+      
+      // Force page refresh to ensure clean state
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 100);
+      
+      return { error };
+    } catch (error) {
+      return { error };
+    }
   };
 
   const value = {
