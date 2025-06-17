@@ -17,8 +17,18 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
+type UserRole = 'user' | 'admin' | 'moderator';
+
+interface UserWithRole {
+  id: string;
+  name: string | null;
+  email: string | null;
+  created_at: string;
+  user_roles: { role: UserRole }[];
+}
+
 const UserManagement = () => {
-  const [users, setUsers] = useState<any[]>([]);
+  const [users, setUsers] = useState<UserWithRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const { userRole } = useAuth();
@@ -66,7 +76,7 @@ const UserManagement = () => {
     }
   };
 
-  const updateUserRole = async (userId: string, newRole: string) => {
+  const updateUserRole = async (userId: string, newRole: UserRole) => {
     try {
       // First, delete existing role
       await supabase
@@ -74,12 +84,12 @@ const UserManagement = () => {
         .delete()
         .eq('user_id', userId);
 
-      // Then insert new role
+      // Then insert new role with proper typing
       const { error } = await supabase
         .from('user_roles')
         .insert({
           user_id: userId,
-          role: newRole
+          role: newRole as UserRole
         });
 
       if (error) throw error;
