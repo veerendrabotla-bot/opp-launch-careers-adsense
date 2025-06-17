@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -7,7 +8,6 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Shield, User, Crown } from 'lucide-react';
 
 const Auth = () => {
@@ -58,9 +58,7 @@ const Auth = () => {
         const { error: signUpError } = await signUp(email, password, name);
         if (signUpError) throw signUpError;
 
-        // For signup, we don't immediately assign roles because the user needs to confirm their email first
-        // The role assignment will happen after email confirmation
-        // For now, we'll store the intended role in localStorage to assign it later
+        // Store the intended role for assignment after email confirmation
         if (selectedRole !== 'user') {
           localStorage.setItem('pendingUserRole', selectedRole);
         }
@@ -82,7 +80,6 @@ const Auth = () => {
           title: "Welcome back!",
           description: "You have successfully signed in.",
         });
-        // Navigation will be handled by useEffect when userRole is set
       }
     } catch (error: any) {
       console.error('Auth error:', error);

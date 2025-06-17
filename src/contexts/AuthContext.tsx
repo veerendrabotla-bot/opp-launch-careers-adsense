@@ -105,15 +105,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          const role = await fetchUserRole(session.user.id);
-          
-          const pendingRole = localStorage.getItem('pendingUserRole');
-          if (pendingRole && pendingRole !== 'user') {
-            console.log('Assigning pending role:', pendingRole);
-            await assignUserRole(session.user.id, pendingRole as 'user' | 'admin' | 'moderator');
-            localStorage.removeItem('pendingUserRole');
-            await fetchUserRole(session.user.id);
-          }
+          // Use setTimeout to prevent potential deadlocks
+          setTimeout(async () => {
+            if (!mounted) return;
+            
+            const role = await fetchUserRole(session.user.id);
+            
+            const pendingRole = localStorage.getItem('pendingUserRole');
+            if (pendingRole && pendingRole !== 'user') {
+              console.log('Assigning pending role:', pendingRole);
+              await assignUserRole(session.user.id, pendingRole as 'user' | 'admin' | 'moderator');
+              localStorage.removeItem('pendingUserRole');
+              await fetchUserRole(session.user.id);
+            }
+          }, 0);
         } else {
           setUserRole(null);
         }
@@ -124,6 +129,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
+    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (mounted) {
         setSession(session);
@@ -174,13 +180,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       
       if (error) throw error;
-      
-      // Force a page refresh after successful login to ensure clean state
-      if (data.user) {
-        setTimeout(() => {
-          window.location.href = '/dashboard';
-        }, 100);
-      }
       
       return { error: null };
     } catch (error) {
