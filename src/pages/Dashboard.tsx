@@ -8,36 +8,80 @@ import {
   FileText, 
   TrendingUp, 
   Calendar,
-  ExternalLink
+  ExternalLink,
+  Loader2
 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Dashboard = () => {
-  // Mock data - this would come from your database
-  const mockBookmarks = [
-    {
-      id: 1,
-      title: "Frontend Developer Internship",
-      type: "Internship",
-      deadline: "2024-07-15",
-      company: "TechCorp"
-    },
-    {
-      id: 2,
-      title: "Google Summer of Code 2024",
-      type: "Contest",
-      deadline: "2024-06-30",
-      company: "Google"
-    }
-  ];
+  const [bookmarks, setBookmarks] = useState<any[]>([]);
+  const [resumes, setResumes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
-  const mockResumes = [
-    {
-      id: 1,
-      name: "Software Engineer Resume",
-      matchScore: 85,
-      createdAt: "2024-06-01"
-    }
-  ];
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+
+        // Fetch bookmarks
+        const { data: bookmarksData, error: bookmarksError } = await supabase
+          .from('bookmarks')
+          .select(`
+            id,
+            created_at,
+            opportunities (
+              id,
+              title,
+              type,
+              deadline,
+              company
+            )
+          `)
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(5);
+
+        if (bookmarksError) throw bookmarksError;
+
+        // Fetch resumes
+        const { data: resumesData, error: resumesError } = await supabase
+          .from('resumes')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(5);
+
+        if (resumesError) throw resumesError;
+
+        setBookmarks(bookmarksData || []);
+        setResumes(resumesData || []);
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, [user]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600">Loading your dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const bestMatchScore = resumes.length > 0 ? Math.max(...resumes.map(r => r.match_score || 0)) : 0;
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20 md:pb-0">
@@ -55,7 +99,7 @@ const Dashboard = () => {
               <BookmarkIcon className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{mockBookmarks.length}</div>
+              <div className="text-2xl font-bold">{bookmarks.length}</div>
               <p className="text-xs text-muted-foreground">opportunities saved</p>
             </CardContent>
           </Card>
@@ -66,7 +110,7 @@ const Dashboard = () => {
               <FileText className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{mockResumes.length}</div>
+              <div className="text-2xl font-bold">{resumes.length}</div>
               <p className="text-xs text-muted-foreground">tailored resumes</p>
             </CardContent>
           </Card>
@@ -77,7 +121,7 @@ const Dashboard = () => {
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">85%</div>
+              <div className="text-2xl font-bold">{bestMatchScore}%</div>
               <p className="text-xs text-muted-foreground">highest match score</p>
             </CardContent>
           </Card>
@@ -96,25 +140,32 @@ const Dashboard = () => {
               <CardDescription>Your saved opportunities</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {mockBookmarks.map(bookmark => (
-                <div key={bookmark.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <h4 className="font-medium">{bookmark.title}</h4>
-                    <p className="text-sm text-gray-600">{bookmark.company}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Badge variant="outline">{bookmark.type}</Badge>
-                      <span className="text-xs text-gray-500 flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        {bookmark.deadline}
-                      </span>
+              {bookmarks.map(bookmark => {
+                const opportunity = bookmark.opportunities;
+                if (!opportunity) return null;
+                
+                return (
+                  <div key={bookmark.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <h4 className="font-medium">{opportunity.title}</h4>
+                      <p className="text-sm text-gray-600">{opportunity.company}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge variant="outline">{opportunity.type}</Badge>
+                        <span className="text-xs text-gray-500 flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          {new Date(opportunity.deadline).toLocaleDateString()}
+                        </span>
+                      </div>
                     </div>
+                    <Link to={`/opportunities/${opportunity.id}`}>
+                      <Button size="sm" variant="ghost">
+                        <ExternalLink className="h-4 w-4" />
+                      </Button>
+                    </Link>
                   </div>
-                  <Button size="sm" variant="ghost">
-                    <ExternalLink className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-              {mockBookmarks.length === 0 && (
+                );
+              })}
+              {bookmarks.length === 0 && (
                 <p className="text-gray-500 text-center py-4">No bookmarked opportunities yet</p>
               )}
             </CardContent>
@@ -132,15 +183,17 @@ const Dashboard = () => {
               <CardDescription>Your AI-tailored resumes</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {mockResumes.map(resume => (
+              {resumes.map(resume => (
                 <div key={resume.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div>
                     <h4 className="font-medium">{resume.name}</h4>
-                    <p className="text-sm text-gray-600">Created on {resume.createdAt}</p>
+                    <p className="text-sm text-gray-600">Created on {new Date(resume.created_at).toLocaleDateString()}</p>
                     <div className="flex items-center gap-2 mt-1">
-                      <Badge className="bg-green-100 text-green-800">
-                        {resume.matchScore}% Match
-                      </Badge>
+                      {resume.match_score && (
+                        <Badge className="bg-green-100 text-green-800">
+                          {resume.match_score}% Match
+                        </Badge>
+                      )}
                     </div>
                   </div>
                   <Button size="sm" variant="ghost">
@@ -148,7 +201,7 @@ const Dashboard = () => {
                   </Button>
                 </div>
               ))}
-              {mockResumes.length === 0 && (
+              {resumes.length === 0 && (
                 <p className="text-gray-500 text-center py-4">No tailored resumes yet</p>
               )}
             </CardContent>

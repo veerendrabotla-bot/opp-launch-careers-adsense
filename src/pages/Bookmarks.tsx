@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,56 +10,89 @@ import {
   Calendar,
   MapPin,
   Building,
-  Search
+  Search,
+  Loader2
 } from "lucide-react";
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
 const Bookmarks = () => {
-  // Mock data - this would come from your database
-  const [bookmarkedOpportunities, setBookmarkedOpportunities] = useState([
-    {
-      id: 1,
-      title: "Frontend Developer Internship",
-      description: "Join our dynamic team to build cutting-edge web applications using React and TypeScript.",
-      type: "Internship",
-      domain: "Tech",
-      location: "Remote",
-      tags: ["React", "TypeScript", "Frontend"],
-      deadline: "2024-07-15",
-      sourceUrl: "https://internshala.com/internship/detail/frontend-developer-internship-at-tech-company1703",
-      company: "TechCorp",
-      bookmarkedAt: "2024-06-01"
-    },
-    {
-      id: 2,
-      title: "Google Summer of Code 2024",
-      description: "Contribute to open source projects and get mentored by industry experts.",
-      type: "Contest",
-      domain: "Tech",
-      location: "Remote",
-      tags: ["Open Source", "Programming", "Mentorship"],
-      deadline: "2024-06-30",
-      sourceUrl: "https://summerofcode.withgoogle.com",
-      company: "Google",
-      bookmarkedAt: "2024-05-20"
-    },
-    {
-      id: 3,
-      title: "Women in Tech Scholarship",
-      description: "Scholarship program supporting women pursuing careers in technology.",
-      type: "Scholarship",
-      domain: "Tech",
-      location: "India",
-      tags: ["Women", "Scholarship", "Tech"],
-      deadline: "2024-08-01",
-      sourceUrl: "https://example.com/scholarship",
-      company: "TechFoundation",
-      bookmarkedAt: "2024-05-25"
-    }
-  ]);
+  const [bookmarkedOpportunities, setBookmarkedOpportunities] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const { toast } = useToast();
 
-  const handleRemoveBookmark = (id: number) => {
-    setBookmarkedOpportunities(prev => prev.filter(opp => opp.id !== id));
+  const fetchBookmarks = async () => {
+    if (!user) return;
+
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('bookmarks')
+        .select(`
+          id,
+          created_at,
+          opportunities (
+            id,
+            title,
+            description,
+            type,
+            domain,
+            location,
+            company,
+            tags,
+            deadline,
+            source_url
+          )
+        `)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      setBookmarkedOpportunities(data || []);
+    } catch (error: any) {
+      console.error('Error fetching bookmarks:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch bookmarks",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const handleRemoveBookmark = async (bookmarkId: string) => {
+    try {
+      const { error } = await supabase
+        .from('bookmarks')
+        .delete()
+        .eq('id', bookmarkId);
+
+      if (error) throw error;
+
+      setBookmarkedOpportunities(prev => 
+        prev.filter(bookmark => bookmark.id !== bookmarkId)
+      );
+
+      toast({
+        title: "Bookmark removed",
+        description: "Opportunity has been removed from your bookmarks"
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to remove bookmark",
+        variant: "destructive"
+      });
+    }
+  };
+
+  useEffect(() => {
+    fetchBookmarks();
+  }, [user]);
 
   const getTypeColor = (type: string) => {
     switch (type) {
@@ -82,6 +115,17 @@ const Bookmarks = () => {
     if (diffDays === 1) return "Tomorrow";
     return `${diffDays} days left`;
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600">Loading your bookmarks...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20 md:pb-0">
@@ -108,97 +152,103 @@ const Bookmarks = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {bookmarkedOpportunities.length > 0 ? (
           <div className="space-y-6">
-            {bookmarkedOpportunities.map(opportunity => (
-              <Card key={opportunity.id} className="hover:shadow-lg transition-shadow duration-200">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <Badge className={getTypeColor(opportunity.type)}>
-                          {opportunity.type}
-                        </Badge>
-                        <Badge variant="outline">{opportunity.domain}</Badge>
+            {bookmarkedOpportunities.map(bookmark => {
+              const opportunity = bookmark.opportunities;
+              if (!opportunity) return null;
+              
+              return (
+                <Card key={bookmark.id} className="hover:shadow-lg transition-shadow duration-200">
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <Badge className={getTypeColor(opportunity.type)}>
+                            {opportunity.type}
+                          </Badge>
+                          <Badge variant="outline">{opportunity.domain}</Badge>
+                        </div>
+                        <CardTitle className="text-xl mb-2">
+                          <Link 
+                            to={`/opportunities/${opportunity.id}`}
+                            className="hover:text-blue-600 transition-colors"
+                          >
+                            {opportunity.title}
+                          </Link>
+                        </CardTitle>
+                        <div className="flex items-center gap-4 text-sm text-gray-500 mb-3">
+                          {opportunity.company && (
+                            <div className="flex items-center gap-1">
+                              <Building className="h-4 w-4" />
+                              {opportunity.company}
+                            </div>
+                          )}
+                          {opportunity.location && (
+                            <div className="flex items-center gap-1">
+                              <MapPin className="h-4 w-4" />
+                              {opportunity.location}
+                            </div>
+                          )}
+                          <div className="flex items-center gap-1">
+                            <Calendar className="h-4 w-4" />
+                            {formatDeadline(opportunity.deadline)}
+                          </div>
+                        </div>
+                        <p className="text-sm text-gray-500 mb-2">
+                          Bookmarked on {new Date(bookmark.created_at).toLocaleDateString()}
+                        </p>
                       </div>
-                      <CardTitle className="text-xl mb-2">
-                        <Link 
-                          to={`/opportunities/${opportunity.id}`}
-                          className="hover:text-blue-600 transition-colors"
-                        >
-                          {opportunity.title}
-                        </Link>
-                      </CardTitle>
-                      <div className="flex items-center gap-4 text-sm text-gray-500 mb-3">
-                        <div className="flex items-center gap-1">
-                          <Building className="h-4 w-4" />
-                          {opportunity.company}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <MapPin className="h-4 w-4" />
-                          {opportunity.location}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-4 w-4" />
-                          {formatDeadline(opportunity.deadline)}
-                        </div>
-                      </div>
-                      <p className="text-sm text-gray-500 mb-2">
-                        Bookmarked on {opportunity.bookmarkedAt}
-                      </p>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleRemoveBookmark(opportunity.id)}
-                      className="ml-4 text-blue-600"
-                    >
-                      <Bookmark className="h-5 w-5 fill-current" />
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="mb-4 text-gray-600">
-                    {opportunity.description}
-                  </CardDescription>
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {opportunity.tags.map((tag, index) => (
-                      <Badge key={index} variant="secondary" className="text-xs">
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
-                  <div className="flex gap-3">
-                    <Button className="bg-blue-600 hover:bg-blue-700">
-                      <ExternalLink className="h-4 w-4 mr-2" />
-                      Apply Now
-                    </Button>
-                    <Link to={`/opportunities/${opportunity.id}`}>
-                      <Button variant="outline">
-                        View Details
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoveBookmark(bookmark.id)}
+                        className="ml-4 text-blue-600"
+                      >
+                        <Bookmark className="h-5 w-5 fill-current" />
                       </Button>
-                    </Link>
-                    <Button 
-                      variant="outline"
-                      onClick={() => handleRemoveBookmark(opportunity.id)}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <CardDescription className="mb-4 text-gray-600">
+                      {opportunity.description}
+                    </CardDescription>
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {opportunity.tags?.map((tag: string, idx: number) => (
+                        <Badge key={idx} variant="secondary" className="text-xs">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <Link to={`/opportunities/${opportunity.id}`}>
+                        <Button variant="outline" size="sm">
+                          View Details
+                        </Button>
+                      </Link>
+                      <a 
+                        href={opportunity.source_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                      >
+                        <Button size="sm">
+                          Apply Now
+                          <ExternalLink className="h-4 w-4 ml-2" />
+                        </Button>
+                      </a>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         ) : (
           <div className="text-center py-12">
-            <div className="text-gray-400 mb-4">
-              <Bookmark className="h-16 w-16 mx-auto" />
-            </div>
-            <h3 className="text-2xl font-semibold text-gray-900 mb-2">No bookmarked opportunities</h3>
-            <p className="text-gray-600 mb-6 max-w-md mx-auto">
-              Start exploring opportunities and bookmark the ones that interest you. They'll appear here for easy access.
+            <Bookmark className="h-24 w-24 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">No bookmarks yet</h3>
+            <p className="text-gray-600 mb-6">
+              Start bookmarking opportunities to keep track of the ones you're interested in.
             </p>
             <Link to="/opportunities">
-              <Button className="bg-blue-600 hover:bg-blue-700">
+              <Button>
                 <Search className="h-4 w-4 mr-2" />
                 Browse Opportunities
               </Button>
