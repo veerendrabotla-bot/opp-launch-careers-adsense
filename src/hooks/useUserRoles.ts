@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -24,7 +23,7 @@ export const useUserRoles = () => {
     if (!user) return;
     
     try {
-      // Check admin status
+      // Check admin status using secure function
       const { data: adminData, error: adminError } = await supabase.rpc('is_admin', {
         _user_id: user.id
       });
@@ -32,7 +31,7 @@ export const useUserRoles = () => {
       if (adminError) throw adminError;
       setIsAdmin(adminData);
 
-      // Check moderator status
+      // Check moderator status using secure function
       const { data: moderatorData, error: moderatorError } = await supabase.rpc('has_role', {
         _user_id: user.id,
         _role: 'moderator'
@@ -52,7 +51,7 @@ export const useUserRoles = () => {
 
     setLoading(true);
     try {
-      // First fetch all profiles
+      // Fetch profiles (public data)
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('*')
@@ -60,7 +59,7 @@ export const useUserRoles = () => {
 
       if (profilesError) throw profilesError;
 
-      // Then fetch all user roles
+      // Fetch user roles (with RLS protection)
       const { data: userRoles, error: rolesError } = await supabase
         .from('user_roles')
         .select('*');
@@ -100,28 +99,13 @@ export const useUserRoles = () => {
     }
 
     try {
-      const { error } = await supabase
-        .from('user_roles')
-        .upsert({
-          user_id: userId,
-          role: role,
-          assigned_by: user.id
-        }, {
-          onConflict: 'user_id,role'
-        });
+      // Use the secure database function for role assignment
+      const { error } = await supabase.rpc('assign_user_role', {
+        _user_id: userId,
+        _role: role
+      });
 
       if (error) throw error;
-
-      // Log admin action
-      await supabase
-        .from('admin_actions')
-        .insert({
-          admin_id: user.id,
-          action_type: 'assign_role',
-          target_type: 'user',
-          target_id: userId,
-          details: { role }
-        });
 
       toast({
         title: "Role Assigned",
@@ -130,9 +114,10 @@ export const useUserRoles = () => {
 
       fetchUsers();
     } catch (error: any) {
+      console.error('Error assigning role:', error);
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || "Failed to assign role",
         variant: "destructive",
       });
     }
@@ -152,35 +137,25 @@ export const useUserRoles = () => {
     }
 
     try {
-      const { error } = await supabase
-        .from('user_roles')
-        .delete()
-        .eq('user_id', userId)
-        .eq('role', role);
+      // Assign 'user' role instead of removing (ensures every user has a role)
+      const { error } = await supabase.rpc('assign_user_role', {
+        _user_id: userId,
+        _role: 'user'
+      });
 
       if (error) throw error;
 
-      // Log admin action
-      await supabase
-        .from('admin_actions')
-        .insert({
-          admin_id: user.id,
-          action_type: 'remove_role',
-          target_type: 'user',
-          target_id: userId,
-          details: { role }
-        });
-
       toast({
-        title: "Role Removed",
-        description: `${role} role has been removed from user.`,
+        title: "Role Updated",
+        description: "User role has been set to regular user.",
       });
 
       fetchUsers();
     } catch (error: any) {
+      console.error('Error updating role:', error);
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || "Failed to update role",
         variant: "destructive",
       });
     }

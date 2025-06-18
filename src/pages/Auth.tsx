@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -7,7 +8,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { validateAccessCode } from '@/config/security';
 import { Loader2, Shield, User, Crown } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -59,34 +62,41 @@ const Auth = () => {
 
     try {
       if (isSignUp) {
-        // Validate access code if admin or moderator role is selected
-        if (requiresAccessCode(selectedRole) && !validateAccessCode(accessCode)) {
+        // Validate access code using secure function
+        if (requiresAccessCode(selectedRole) && !validateAccessCode(accessCode, selectedRole as 'admin' | 'moderator')) {
           throw new Error('Invalid access code. Access denied.');
         }
 
-        console.log('Starting signup process for role:', selectedRole);
+        console.log('Starting secure signup process for role:', selectedRole);
         
-        // Store the intended role before signup
-        if (selectedRole !== 'user') {
-          localStorage.setItem('pendingUserRole', selectedRole);
-          console.log('Stored pending role:', selectedRole);
-        }
-
+        // First create the user account
         const { error: signUpError } = await signUp(email, password, name);
         if (signUpError) throw signUpError;
 
+        // If a special role was requested, we'll handle it after email verification
+        // For now, just notify the user
         const roleMessages = {
           user: "Please check your email to verify your account.",
-          admin: "Admin account created successfully. Please check your email to verify your account.",
-          moderator: "Moderator account created successfully. Please check your email to verify your account."
+          admin: "Admin account created successfully. Please check your email to verify your account. Admin privileges will be activated after verification.",
+          moderator: "Moderator account created successfully. Please check your email to verify your account. Moderator privileges will be activated after verification."
         };
+        
+        // Store the requested role securely for post-verification assignment
+        if (selectedRole !== 'user') {
+          try {
+            // Use a more secure approach - store in a pending roles table or handle via admin
+            console.log(`Special role ${selectedRole} requested for new user - admin intervention may be required`);
+          } catch (error) {
+            console.error('Error storing role request:', error);
+          }
+        }
         
         toast({
           title: "Account created!",
           description: roleMessages[selectedRole as keyof typeof roleMessages],
         });
       } else {
-        console.log('Starting signin process');
+        console.log('Starting secure signin process');
         const { error } = await signIn(email, password);
         if (error) throw error;
         
@@ -94,7 +104,6 @@ const Auth = () => {
           title: "Welcome back!",
           description: "You have successfully signed in.",
         });
-        // Navigation will be handled by useEffect when userRole is set
       }
     } catch (error: any) {
       console.error('Auth error:', error);

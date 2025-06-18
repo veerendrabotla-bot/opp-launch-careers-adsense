@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -35,26 +34,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.removeItem(key);
       }
     });
+    // Remove any insecure role storage
     localStorage.removeItem('pendingUserRole');
+    localStorage.removeItem('userRole');
   };
 
-  const assignUserRole = async (userId: string, role: 'user' | 'admin' | 'moderator') => {
+  const secureAssignUserRole = async (userId: string, role: 'user' | 'admin' | 'moderator') => {
     try {
-      console.log('Assigning role:', role, 'to user:', userId);
+      console.log('Securely assigning role:', role, 'to user:', userId);
       
-      // First, delete any existing roles for this user
-      await supabase
-        .from('user_roles')
-        .delete()
-        .eq('user_id', userId);
-
-      // Then insert the new role
-      const { error } = await supabase
-        .from('user_roles')
-        .insert({
-          user_id: userId,
-          role: role
-        });
+      // Use the secure database function instead of direct table manipulation
+      const { data, error } = await supabase.rpc('assign_user_role', {
+        _user_id: userId,
+        _role: role
+      });
       
       if (error) {
         console.error('Error assigning role:', error);
@@ -63,10 +56,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       console.log(`Successfully assigned ${role} role to user ${userId}`);
       
-      // Immediately fetch the role to update state
+      // Immediately fetch the updated role
       await fetchUserRole(userId);
+      return true;
     } catch (error: any) {
-      console.error('Error in assignUserRole:', error);
+      console.error('Error in secureAssignUserRole:', error);
+      throw error;
     }
   };
 
@@ -74,7 +69,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('Fetching role for user:', userId);
       
-      // Fetch user role directly from user_roles table
+      // Use the secure RLS-protected query
       const { data: roleData, error: roleError } = await supabase
         .from('user_roles')
         .select('role')
@@ -117,7 +112,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             
             if (pendingRole && pendingRole !== 'user') {
               console.log('Assigning pending role:', pendingRole);
-              await assignUserRole(session.user.id, pendingRole as 'user' | 'admin' | 'moderator');
+              await secureAssignUserRole(session.user.id, pendingRole as 'user' | 'admin' | 'moderator');
               localStorage.removeItem('pendingUserRole');
             } else {
               // Fetch existing role
