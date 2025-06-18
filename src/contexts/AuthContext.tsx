@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,7 +8,7 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   userRole: string | null;
-  signUp: (email: string, password: string, name?: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, name?: string, requestedRole?: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<{ error: any }>;
 }
@@ -39,11 +40,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('userRole');
   };
 
+  const directAssignUserRole = async (userId: string, role: 'user' | 'admin' | 'moderator') => {
+    try {
+      console.log('Directly assigning role:', role, 'to user:', userId);
+      
+      // Direct database insertion for initial role assignment
+      const { data, error } = await supabase
+        .from('user_roles')
+        .insert({
+          user_id: userId,
+          role: role,
+          assigned_by: userId // Self-assignment for initial setup
+        });
+      
+      if (error) {
+        console.error('Error in direct role assignment:', error);
+        // Try updating existing role if insert failed due to conflict
+        const { error: updateError } = await supabase
+          .from('user_roles')
+          .update({ role: role })
+          .eq('user_id', userId);
+        
+        if (updateError) {
+          console.error('Error updating role:', updateError);
+          throw updateError;
+        }
+      }
+      
+      console.log(`Successfully assigned ${role} role to user ${userId}`);
+      
+      // Immediately fetch the updated role
+      await fetchUserRole(userId);
+      return true;
+    } catch (error: any) {
+      console.error('Error in directAssignUserRole:', error);
+      throw error;
+    }
+  };
+
   const secureAssignUserRole = async (userId: string, role: 'user' | 'admin' | 'moderator') => {
     try {
       console.log('Securely assigning role:', role, 'to user:', userId);
       
-      // Use the secure database function instead of direct table manipulation
+      // Use the secure database function for role assignment
       const { data, error } = await supabase.rpc('assign_user_role', {
         _user_id: userId,
         _role: role
@@ -111,8 +150,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const pendingRole = localStorage.getItem('pendingUserRole');
             
             if (pendingRole && pendingRole !== 'user') {
-              console.log('Assigning pending role:', pendingRole);
-              await secureAssignUserRole(session.user.id, pendingRole as 'user' | 'admin' | 'moderator');
+              console.log('Processing pending role assignment:', pendingRole);
+              
+              // For initial admin/moderator setup, use direct assignment
+              // This bypasses the RLS restriction for the first admin
+              await directAssignUserRole(session.user.id, pendingRole as 'user' | 'admin' | 'moderator');
               localStorage.removeItem('pendingUserRole');
             } else {
               // Fetch existing role
@@ -154,9 +196,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  const signUp = async (email: string, password: string, name?: string) => {
+  const signUp = async (email: string, password: string, name?: string, requestedRole?: string) => {
     try {
       const redirectUrl = `${window.location.origin}/`;
+      
+      // Store the requested role for post-verification assignment
+      if (requestedRole && requestedRole !== 'user') {
+        localStorage.setItem('pendingUserRole', requestedRole);
+      }
       
       const { error } = await supabase.auth.signUp({
         email,

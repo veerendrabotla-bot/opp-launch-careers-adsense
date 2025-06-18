@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -57,34 +56,22 @@ const Auth = () => {
 
     try {
       if (isSignUp) {
-        // Validate access code using secure function
+        // Validate access code for special roles
         if (requiresAccessCode(selectedRole) && !validateAccessCode(accessCode, selectedRole as 'admin' | 'moderator')) {
           throw new Error('Invalid access code. Access denied.');
         }
 
         console.log('Starting secure signup process for role:', selectedRole);
         
-        // First create the user account
-        const { error: signUpError } = await signUp(email, password, name);
+        // Pass the requested role to signUp function
+        const { error: signUpError } = await signUp(email, password, name, selectedRole);
         if (signUpError) throw signUpError;
 
-        // If a special role was requested, we'll handle it after email verification
-        // For now, just notify the user
         const roleMessages = {
           user: "Please check your email to verify your account.",
           admin: "Admin account created successfully. Please check your email to verify your account. Admin privileges will be activated after verification.",
           moderator: "Moderator account created successfully. Please check your email to verify your account. Moderator privileges will be activated after verification."
         };
-        
-        // Store the requested role securely for post-verification assignment
-        if (selectedRole !== 'user') {
-          try {
-            // Use a more secure approach - store in a pending roles table or handle via admin
-            console.log(`Special role ${selectedRole} requested for new user - admin intervention may be required`);
-          } catch (error) {
-            console.error('Error storing role request:', error);
-          }
-        }
         
         toast({
           title: "Account created!",
