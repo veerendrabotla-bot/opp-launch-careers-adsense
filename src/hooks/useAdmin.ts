@@ -93,6 +93,25 @@ export const useAdmin = () => {
     }
   };
 
+  const deleteOpportunity = async (opportunityId: string) => {
+    if (!isAdmin && !isModerator) return false;
+
+    try {
+      const { error } = await supabase
+        .from('opportunities')
+        .delete()
+        .eq('id', opportunityId);
+
+      if (error) throw error;
+
+      await fetchOpportunities();
+      return true;
+    } catch (err: any) {
+      console.error('Error deleting opportunity:', err);
+      return false;
+    }
+  };
+
   useEffect(() => {
     if (user && (isAdmin || isModerator)) {
       fetchOpportunities();
@@ -133,6 +152,7 @@ export const useAdmin = () => {
     isModerator,
     approveOpportunity,
     rejectOpportunity,
+    deleteOpportunity,
     refetch: fetchOpportunities
   };
 };
