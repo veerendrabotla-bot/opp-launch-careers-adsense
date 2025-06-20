@@ -23,8 +23,8 @@ const PerformanceMonitor: React.FC = () => {
       const paint = performance.getEntriesByType('paint');
       
       const newMetrics: PerformanceMetrics = {
-        pageLoadTime: navigation.loadEventEnd - navigation.navigationStart,
-        domContentLoaded: navigation.domContentLoadedEventEnd - navigation.navigationStart,
+        pageLoadTime: navigation.loadEventEnd - navigation.fetchStart,
+        domContentLoaded: navigation.domContentLoadedEventEnd - navigation.fetchStart,
       };
 
       // First Contentful Paint
