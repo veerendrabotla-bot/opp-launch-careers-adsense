@@ -10,7 +10,6 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import AdminNavigation from "./components/AdminNavigation";
 import ModeratorNavigation from "./components/ModeratorNavigation";
 import ProductionDataLoader from "./components/ProductionDataLoader";
-import ErrorBoundary from "./components/ErrorBoundary";
 import Home from "./pages/Home";
 import Opportunities from "./pages/Opportunities";
 import OpportunityDetail from "./pages/OpportunityDetail";
@@ -59,213 +58,211 @@ const ModeratorLayout: React.FC<LayoutWrapperProps> = ({ children }) => (
 );
 
 const App = () => (
-  <ErrorBoundary>
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <AuthProvider>
-          <ProductionDataLoader />
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Layout>
-              <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/opportunities" element={<Opportunities />} />
-                <Route path="/opportunities/:id" element={<OpportunityDetail />} />
-                <Route path="/help" element={<HelpCenter />} />
-                <Route path="/contact" element={<Contact />} />
-                <Route path="/privacy" element={<Privacy />} />
-                <Route path="/about" element={<About />} />
-                <Route path="/blog" element={<Blog />} />
-                <Route path="/careers" element={<Careers />} />
-                <Route path="/scholarships" element={<Scholarships />} />
-                <Route path="/auth" element={<Auth />} />
-                
-                <Route 
-                  path="/submit" 
-                  element={
-                    <ProtectedRoute requireAuth={true}>
-                      <Submit />
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/tailor" 
-                  element={
-                    <ProtectedRoute requireAuth={true}>
-                      <Tailor />
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/dashboard" 
-                  element={
-                    <ProtectedRoute requireAuth={true}>
-                      <Dashboard />
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/bookmarks" 
-                  element={
-                    <ProtectedRoute requireAuth={true}>
-                      <Bookmarks />
-                    </ProtectedRoute>
-                  } 
-                />
-                
-                {/* Moderator Routes */}
-                <Route 
-                  path="/moderator" 
-                  element={
-                    <ProtectedRoute requireAuth={true} requireModerator={true}>
-                      <ModeratorLayout>
-                        <ModeratorDashboard />
-                      </ModeratorLayout>
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/moderator/opportunities" 
-                  element={
-                    <ProtectedRoute requireAuth={true} requireModerator={true}>
-                      <ModeratorLayout>
-                        <Admin />
-                      </ModeratorLayout>
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/moderator/approved" 
-                  element={
-                    <ProtectedRoute requireAuth={true} requireModerator={true}>
-                      <ModeratorLayout>
-                        <Opportunities />
-                      </ModeratorLayout>
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/moderator/users" 
-                  element={
-                    <ProtectedRoute requireAuth={true} requireModerator={true}>
-                      <ModeratorLayout>
-                        <UserManagement />
-                      </ModeratorLayout>
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/moderator/notifications" 
-                  element={
-                    <ProtectedRoute requireAuth={true} requireModerator={true}>
-                      <ModeratorLayout>
-                        <AdminNotifications />
-                      </ModeratorLayout>
-                    </ProtectedRoute>
-                  } 
-                />
-                
-                {/* Admin Routes */}
-                <Route 
-                  path="/admin" 
-                  element={
-                    <ProtectedRoute requireAuth={true} requireAdmin={true}>
-                      <AdminLayout>
-                        <AdminDashboard />
-                      </AdminLayout>
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/admin/opportunities" 
-                  element={
-                    <ProtectedRoute requireAuth={true} requireAdmin={true}>
-                      <AdminLayout>
-                        <Admin />
-                      </AdminLayout>
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/admin/users" 
-                  element={
-                    <ProtectedRoute requireAuth={true} requireAdmin={true}>
-                      <AdminLayout>
-                        <UserManagement />
-                      </AdminLayout>
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/admin/analytics" 
-                  element={
-                    <ProtectedRoute requireAuth={true} requireAdmin={true}>
-                      <AdminLayout>
-                        <AdminAnalytics />
-                      </AdminLayout>
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/admin/notifications" 
-                  element={
-                    <ProtectedRoute requireAuth={true} requireAdmin={true}>
-                      <AdminLayout>
-                        <AdminNotifications />
-                      </AdminLayout>
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/admin/email-campaigns" 
-                  element={
-                    <ProtectedRoute requireAuth={true} requireAdmin={true}>
-                      <AdminLayout>
-                        <AdminEmailCampaigns />
-                      </AdminLayout>
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/admin/expired" 
-                  element={
-                    <ProtectedRoute requireAuth={true} requireAdmin={true}>
-                      <AdminLayout>
-                        <AdminExpired />
-                      </AdminLayout>
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/admin/monetization" 
-                  element={
-                    <ProtectedRoute requireAuth={true} requireAdmin={true}>
-                      <AdminLayout>
-                        <AdminMonetization />
-                      </AdminLayout>
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/admin/settings" 
-                  element={
-                    <ProtectedRoute requireAuth={true} requireAdmin={true}>
-                      <AdminLayout>
-                        <AdminSettings />
-                      </AdminLayout>
-                    </ProtectedRoute>
-                  } 
-                />
-                
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Layout>
-          </BrowserRouter>
-        </AuthProvider>
-      </TooltipProvider>
-    </QueryClientProvider>
-  </ErrorBoundary>
+  <QueryClientProvider client={queryClient}>
+    <TooltipProvider>
+      <AuthProvider>
+        <ProductionDataLoader />
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Layout>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/opportunities" element={<Opportunities />} />
+              <Route path="/opportunities/:id" element={<OpportunityDetail />} />
+              <Route path="/help" element={<HelpCenter />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/blog" element={<Blog />} />
+              <Route path="/careers" element={<Careers />} />
+              <Route path="/scholarships" element={<Scholarships />} />
+              <Route path="/auth" element={<Auth />} />
+              
+              <Route 
+                path="/submit" 
+                element={
+                  <ProtectedRoute requireAuth={true}>
+                    <Submit />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/tailor" 
+                element={
+                  <ProtectedRoute requireAuth={true}>
+                    <Tailor />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/dashboard" 
+                element={
+                  <ProtectedRoute requireAuth={true}>
+                    <Dashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/bookmarks" 
+                element={
+                  <ProtectedRoute requireAuth={true}>
+                    <Bookmarks />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              {/* Moderator Routes */}
+              <Route 
+                path="/moderator" 
+                element={
+                  <ProtectedRoute requireAuth={true} requireModerator={true}>
+                    <ModeratorLayout>
+                      <ModeratorDashboard />
+                    </ModeratorLayout>
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/moderator/opportunities" 
+                element={
+                  <ProtectedRoute requireAuth={true} requireModerator={true}>
+                    <ModeratorLayout>
+                      <Admin />
+                    </ModeratorLayout>
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/moderator/approved" 
+                element={
+                  <ProtectedRoute requireAuth={true} requireModerator={true}>
+                    <ModeratorLayout>
+                      <Opportunities />
+                    </ModeratorLayout>
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/moderator/users" 
+                element={
+                  <ProtectedRoute requireAuth={true} requireModerator={true}>
+                    <ModeratorLayout>
+                      <UserManagement />
+                    </ModeratorLayout>
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/moderator/notifications" 
+                element={
+                  <ProtectedRoute requireAuth={true} requireModerator={true}>
+                    <ModeratorLayout>
+                      <AdminNotifications />
+                    </ModeratorLayout>
+                  </ProtectedRoute>
+                } 
+              />
+              
+              {/* Admin Routes */}
+              <Route 
+                path="/admin" 
+                element={
+                  <ProtectedRoute requireAuth={true} requireAdmin={true}>
+                    <AdminLayout>
+                      <AdminDashboard />
+                    </AdminLayout>
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/opportunities" 
+                element={
+                  <ProtectedRoute requireAuth={true} requireAdmin={true}>
+                    <AdminLayout>
+                      <Admin />
+                    </AdminLayout>
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/users" 
+                element={
+                  <ProtectedRoute requireAuth={true} requireAdmin={true}>
+                    <AdminLayout>
+                      <UserManagement />
+                    </AdminLayout>
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/analytics" 
+                element={
+                  <ProtectedRoute requireAuth={true} requireAdmin={true}>
+                    <AdminLayout>
+                      <AdminAnalytics />
+                    </AdminLayout>
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/notifications" 
+                element={
+                  <ProtectedRoute requireAuth={true} requireAdmin={true}>
+                    <AdminLayout>
+                      <AdminNotifications />
+                    </AdminLayout>
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/email-campaigns" 
+                element={
+                  <ProtectedRoute requireAuth={true} requireAdmin={true}>
+                    <AdminLayout>
+                      <AdminEmailCampaigns />
+                    </AdminLayout>
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/expired" 
+                element={
+                  <ProtectedRoute requireAuth={true} requireAdmin={true}>
+                    <AdminLayout>
+                      <AdminExpired />
+                    </AdminLayout>
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/monetization" 
+                element={
+                  <ProtectedRoute requireAuth={true} requireAdmin={true}>
+                    <AdminLayout>
+                      <AdminMonetization />
+                    </AdminLayout>
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/settings" 
+                element={
+                  <ProtectedRoute requireAuth={true} requireAdmin={true}>
+                    <AdminLayout>
+                      <AdminSettings />
+                    </AdminLayout>
+                  </ProtectedRoute>
+                } 
+              />
+              
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Layout>
+        </BrowserRouter>
+      </AuthProvider>
+    </TooltipProvider>
+  </QueryClientProvider>
 );
 
 export default App;
