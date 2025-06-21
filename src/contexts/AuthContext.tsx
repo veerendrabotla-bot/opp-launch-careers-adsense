@@ -3,7 +3,6 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { validatePasswordStrength, createRateLimiter } from '@/config/security';
-import { useToast } from '@/hooks/use-toast';
 
 interface AuthContextType {
   user: User | null;
@@ -34,7 +33,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isInitialized, setIsInitialized] = useState(false);
+  const [initialized, setInitialized] = useState(false);
 
   const cleanupAuthState = () => {
     try {
@@ -55,29 +54,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const assignUserRoleSecure = async (userId: string, role: 'user' | 'admin' | 'moderator') => {
-    try {
-      console.log('Assigning role:', role, 'to user:', userId);
-      
-      const { data, error } = await supabase.rpc('assign_user_role_secure', {
-        _user_id: userId,
-        _role: role
-      });
-      
-      if (error) {
-        console.error('Error in role assignment:', error);
-        return false;
-      }
-      
-      console.log(`Successfully assigned ${role} role to user ${userId}`);
-      return true;
-    } catch (error: any) {
-      console.error('Error in assignUserRoleSecure:', error);
-      return false;
-    }
-  };
-
-  const fetchUserRole = async (userId: string) => {
+  const fetchUserRole = async (userId: string): Promise<string> => {
     try {
       console.log('Fetching role for user:', userId);
       
@@ -91,122 +68,156 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error('Error fetching user role:', roleError);
         if (roleError.code === 'PGRST116') {
           console.log('No role found, assigning default user role');
-          const success = await assignUserRoleSecure(userId, 'user');
-          if (success) {
-            setUserRole('user');
-            return 'user';
+          // Assign default user role
+          const { error: insertError } = await supabase
+            .from('user_roles')
+            .insert({
+              user_id: userId,
+              role: 'user'
+            });
+          
+          if (insertError) {
+            console.error('Error assigning default role:', insertError);
           }
+          return 'user';
         }
-        setUserRole('user');
         return 'user';
       }
 
       const role = roleData?.role || 'user';
       console.log('User role fetched:', role);
-      setUserRole(role);
       return role;
     } catch (error: any) {
       console.error('Error in fetchUserRole:', error);
-      setUserRole('user');
       return 'user';
     }
   };
 
   const refreshUserRole = async () => {
-    if (user) {
-      await fetchUserRole(user.id);
+    if (user && !loading) {
+      const role = await fetchUserRole(user.id);
+      setUserRole(role);
     }
   };
 
+  // Initialize auth state
   useEffect(() => {
     let mounted = true;
-    let authProcessing = false;
 
     const initializeAuth = async () => {
-      if (authProcessing || isInitialized) return;
-      authProcessing = true;
+      if (initialized) return;
 
       try {
-        // Get initial session
-        const { data: { session: initialSession } } = await supabase.auth.getSession();
+        console.log('Initializing auth...');
         
+        // Get initial session
+        const { data: { session: initialSession }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error getting initial session:', error);
+        }
+
         if (!mounted) return;
 
         if (initialSession?.user) {
+          console.log('Initial session found:', initialSession.user.email);
           setSession(initialSession);
           setUser(initialSession.user);
-          await fetchUserRole(initialSession.user.id);
+          
+          // Fetch user role
+          const role = await fetchUserRole(initialSession.user.id);
+          if (mounted) {
+            setUserRole(role);
+          }
         } else {
+          console.log('No initial session found');
           setSession(null);
           setUser(null);
           setUserRole(null);
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
+        if (mounted) {
+          setSession(null);
+          setUser(null);
+          setUserRole(null);
+        }
       } finally {
         if (mounted) {
           setLoading(false);
-          setIsInitialized(true);
-          authProcessing = false;
+          setInitialized(true);
         }
       }
     };
 
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth event:', event, session?.user?.email);
-        
-        if (!mounted || authProcessing) return;
-        authProcessing = true;
-
-        try {
-          setSession(session);
-          setUser(session?.user ?? null);
-
-          if (session?.user) {
-            // Handle pending role assignment
-            const pendingRole = localStorage.getItem('pendingUserRole');
-            
-            if (pendingRole && pendingRole !== 'user') {
-              console.log('Processing pending role:', pendingRole);
-              
-              const success = await assignUserRoleSecure(
-                session.user.id, 
-                pendingRole as 'user' | 'admin' | 'moderator'
-              );
-              
-              if (success) {
-                localStorage.removeItem('pendingUserRole');
-                setUserRole(pendingRole);
-              } else {
-                await fetchUserRole(session.user.id);
-              }
-            } else {
-              await fetchUserRole(session.user.id);
-            }
-          } else {
-            setUserRole(null);
-          }
-        } catch (error) {
-          console.error('Error in auth state change handler:', error);
-        } finally {
-          authProcessing = false;
-          if (mounted && !loading) {
-            setLoading(false);
-          }
-        }
-      }
-    );
-
-    // Initialize auth
     initializeAuth();
 
     return () => {
       mounted = false;
-      subscription.unsubscribe();
     };
   }, []);
+
+  // Set up auth state listener after initialization
+  useEffect(() => {
+    if (!initialized) return;
+
+    console.log('Setting up auth state listener...');
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('Auth event:', event, session?.user?.email);
+        
+        // Update session and user immediately
+        setSession(session);
+        setUser(session?.user ?? null);
+
+        // Handle role fetching
+        if (session?.user) {
+          // Check for pending role
+          const pendingRole = localStorage.getItem('pendingUserRole');
+          
+          if (pendingRole && pendingRole !== 'user') {
+            console.log('Processing pending role:', pendingRole);
+            
+            // Assign the pending role
+            try {
+              const { error } = await supabase
+                .from('user_roles')
+                .upsert({
+                  user_id: session.user.id,
+                  role: pendingRole
+                }, {
+                  onConflict: 'user_id'
+                });
+              
+              if (!error) {
+                localStorage.removeItem('pendingUserRole');
+                setUserRole(pendingRole);
+              } else {
+                console.error('Error assigning pending role:', error);
+                const role = await fetchUserRole(session.user.id);
+                setUserRole(role);
+              }
+            } catch (error) {
+              console.error('Error processing pending role:', error);
+              const role = await fetchUserRole(session.user.id);
+              setUserRole(role);
+            }
+          } else {
+            // Fetch existing role
+            const role = await fetchUserRole(session.user.id);
+            setUserRole(role);
+          }
+        } else {
+          setUserRole(null);
+        }
+      }
+    );
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [initialized]);
 
   const signUp = async (email: string, password: string, name?: string, requestedRole?: string) => {
     try {
@@ -260,7 +271,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { error: { message: 'Email and password are required' } };
       }
 
-      cleanupAuthState();
+      console.log('Starting sign in process for:', email);
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -269,7 +280,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (error) {
         console.error('Sign in error:', error);
-        throw error;
+        return { error };
       }
       
       console.log('Sign in successful:', data.user?.email);
@@ -282,10 +293,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     try {
-      cleanupAuthState();
-      const { error } = await supabase.auth.signOut({ scope: 'global' });
+      console.log('Starting sign out process');
+      
+      // Clear local state first
+      setUser(null);
+      setSession(null);
       setUserRole(null);
       
+      // Clean up auth state
+      cleanupAuthState();
+      
+      // Sign out from Supabase
+      const { error } = await supabase.auth.signOut({ scope: 'global' });
+      
+      if (error) {
+        console.error('Sign out error:', error);
+      }
+      
+      // Force page reload to ensure clean state
       setTimeout(() => {
         window.location.replace('/');
       }, 100);

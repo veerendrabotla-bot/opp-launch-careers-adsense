@@ -2,13 +2,28 @@
 import React from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import Navigation from './Navigation';
+import { useAuth } from '@/contexts/AuthContext';
+import { Loader2 } from 'lucide-react';
 
 const Layout = () => {
   const location = useLocation();
+  const { loading } = useAuth();
 
   // Don't show navigation for auth page
   if (location.pathname === '/auth') {
     return <Outlet />;
+  }
+
+  // Show loading spinner while auth is initializing
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
