@@ -121,9 +121,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.log('User created, email confirmation required');
       } else if (data.user) {
         // For auto-confirmed users, assign role immediately
+        // Cast the role to the expected type for the database function
+        const roleValue = role as 'user' | 'admin' | 'moderator';
         const { error: roleError } = await supabase.rpc('assign_user_role_secure', {
           _user_id: data.user.id,
-          _role: role
+          _role: roleValue
         });
 
         if (roleError) {
