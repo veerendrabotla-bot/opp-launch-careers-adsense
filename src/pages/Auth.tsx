@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { validateAccessCode } from '@/config/security';
 import { Loader2, Shield, User, Crown } from 'lucide-react';
+import BackButton from '@/components/BackButton';
 
 const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -140,6 +141,10 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <div className="absolute top-4 left-4">
+        <BackButton to="/" label="Back to Home" />
+      </div>
+      
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <Link to="/" className="flex justify-center">
           <h2 className="text-3xl font-bold text-gray-900">OpportunityHub</h2>

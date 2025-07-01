@@ -3,14 +3,19 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Search, FileText, Users, Target, ArrowRight, Sparkles, BookOpen, TrendingUp } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import Navigation from "@/components/Navigation";
+import Footer from "@/components/Footer";
 
 const Home = () => {
+  const { user } = useAuth();
+
   const features = [
     {
       icon: Sparkles,
       title: "Tailor your Resume with AI",
       description: "Get personalized resume suggestions and match analysis for any job description using GPT-4.",
-      link: "/tailor"
+      link: user ? "/tailor" : "/auth"
     },
     {
       icon: Search,
@@ -22,7 +27,7 @@ const Home = () => {
       icon: Users,
       title: "Share Opportunities Easily",
       description: "Submit and share opportunities with the student community to help others grow.",
-      link: "/submit"
+      link: user ? "/submit" : "/auth"
     }
   ];
 
@@ -35,6 +40,8 @@ const Home = () => {
 
   return (
     <div className="min-h-screen">
+      <Navigation />
+      
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-blue-50 via-white to-amber-50 py-20 px-4">
         <div className="max-w-6xl mx-auto text-center">
@@ -54,13 +61,29 @@ const Home = () => {
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
-              <Link to="/tailor">
+              <Link to={user ? "/tailor" : "/auth"}>
                 <Button variant="outline" size="lg" className="text-lg px-8 py-3 rounded-full">
                   Try AI Resume Tool
                   <Sparkles className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
             </div>
+            
+            {/* Authentication Buttons */}
+            {!user && (
+              <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center items-center">
+                <Link to="/auth">
+                  <Button variant="default" size="lg" className="text-lg px-8 py-3">
+                    Sign In
+                  </Button>
+                </Link>
+                <Link to="/auth">
+                  <Button variant="outline" size="lg" className="text-lg px-8 py-3">
+                    Sign Up
+                  </Button>
+                </Link>
+              </div>
+            )}
           </div>
 
           {/* Stats */}
@@ -120,7 +143,7 @@ const Home = () => {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              How Opportune Works
+              How OpportunityHub Works
             </h2>
             <p className="text-xl text-gray-600">
               Three simple steps to supercharge your career
@@ -168,7 +191,7 @@ const Home = () => {
             Ready to accelerate your career?
           </h2>
           <p className="text-xl mb-8 text-blue-100">
-            Join thousands of students who have found their dream opportunities through Opportune.
+            Join thousands of students who have found their dream opportunities through OpportunityHub.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Link to="/opportunities">
@@ -177,7 +200,7 @@ const Home = () => {
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
-            <Link to="/tailor">
+            <Link to={user ? "/tailor" : "/auth"}>
               <Button size="lg" variant="outline" className="text-lg px-8 py-3 rounded-full border-white text-white hover:bg-white hover:text-blue-600">
                 Try AI Tool Free
               </Button>
@@ -185,6 +208,8 @@ const Home = () => {
           </div>
         </div>
       </section>
+
+      <Footer />
     </div>
   );
 };

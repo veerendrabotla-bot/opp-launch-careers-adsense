@@ -9,10 +9,8 @@ const Layout = () => {
   const location = useLocation();
   const { loading } = useAuth();
 
-  // Don't show navigation for auth page
-  if (location.pathname === '/auth') {
-    return <Outlet />;
-  }
+  // Don't show navigation for auth page or home page (home has its own navigation)
+  const hideNavigation = location.pathname === '/auth' || location.pathname === '/';
 
   // Show loading spinner while auth is initializing
   if (loading) {
@@ -28,7 +26,7 @@ const Layout = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navigation />
+      {!hideNavigation && <Navigation />}
       <main>
         <Outlet />
       </main>
