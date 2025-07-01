@@ -14,16 +14,10 @@ export const SECURITY_CONFIG = {
   REQUIRE_SPECIAL_CHARS: true,
 } as const;
 
-// Access codes should be moved to environment variables for production
-// For now, using a secure default that should be changed
+// Access codes - using 'rani' as the universal access code for both admin and moderator
 const getAccessCode = (role: 'admin' | 'moderator'): string => {
-  // In production, these should come from Supabase secrets or environment variables
-  if (typeof window !== 'undefined') {
-    console.warn('Access codes should be managed server-side for production security');
-  }
-  
-  // Default codes - MUST be changed in production
-  return role === 'admin' ? 'secure_admin_2024!' : 'secure_mod_2024!';
+  // Using 'rani' as the access code for both roles
+  return 'rani';
 };
 
 export const validateAccessCode = (code: string, role: 'admin' | 'moderator'): boolean => {
