@@ -9,6 +9,12 @@ export const useOpportunities = (filters?: {
   type?: string;
   domain?: string;
   search?: string;
+  location?: string;
+  remoteOnly?: boolean;
+  salaryRange?: string;
+  experienceLevel?: string;
+  employmentType?: string;
+  featured?: boolean;
 }) => {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [loading, setLoading] = useState(false);
@@ -33,15 +39,38 @@ export const useOpportunities = (filters?: {
         .from('opportunities')
         .select('*')
         .eq('is_approved', true)
-        .gte('deadline', new Date().toISOString().split('T')[0])
+        .eq('is_expired', false)
+        .order('featured', { ascending: false })
+        .order('priority', { ascending: false })
         .order('created_at', { ascending: false });
 
+      // Apply filters
       if (filters?.type && filters.type !== 'All') {
         query = query.eq('type', filters.type);
       }
 
       if (filters?.domain && filters.domain !== 'All') {
         query = query.eq('domain', filters.domain);
+      }
+
+      if (filters?.location && filters.location !== 'All') {
+        query = query.ilike('location', `%${filters.location}%`);
+      }
+
+      if (filters?.remoteOnly) {
+        query = query.eq('remote_work_allowed', true);
+      }
+
+      if (filters?.experienceLevel && filters.experienceLevel !== 'All') {
+        query = query.eq('experience_required', filters.experienceLevel);
+      }
+
+      if (filters?.employmentType && filters.employmentType !== 'All') {
+        query = query.eq('employment_type', filters.employmentType);
+      }
+
+      if (filters?.featured) {
+        query = query.eq('featured', true);
       }
 
       if (filters?.search) {
@@ -66,16 +95,16 @@ export const useOpportunities = (filters?: {
       setInitialized(true);
       fetchingRef.current = false;
     }
-  }, [filters?.type, filters?.domain, filters?.search]);
+  }, [filters?.type, filters?.domain, filters?.search, filters?.location, filters?.remoteOnly, filters?.experienceLevel, filters?.employmentType, filters?.featured]);
 
-  // Initial fetch - only run once when component mounts
+  // Initial fetch
   useEffect(() => {
     if (!initialized) {
       fetchOpportunities();
     }
   }, [initialized, fetchOpportunities]);
 
-  // Handle filter changes - only refetch if filters actually changed
+  // Handle filter changes
   useEffect(() => {
     if (!initialized) return;
 
@@ -91,9 +120,9 @@ export const useOpportunities = (filters?: {
 
       return () => clearTimeout(timeoutId);
     }
-  }, [filters?.type, filters?.domain, filters?.search, initialized, fetchOpportunities]);
+  }, [filters, initialized, fetchOpportunities]);
 
-  // Clean up subscription when component unmounts
+  // Clean up subscription
   useEffect(() => {
     return () => {
       if (subscriptionRef.current) {
@@ -104,7 +133,7 @@ export const useOpportunities = (filters?: {
     };
   }, []);
 
-  // Set up real-time subscription only after initial fetch
+  // Real-time subscription
   useEffect(() => {
     if (!initialized || subscriptionRef.current) return;
 
@@ -121,7 +150,6 @@ export const useOpportunities = (filters?: {
         },
         (payload) => {
           console.log('Opportunities table changed:', payload);
-          // Debounced refetch to prevent loops
           setTimeout(() => {
             if (!fetchingRef.current) {
               fetchOpportunities();

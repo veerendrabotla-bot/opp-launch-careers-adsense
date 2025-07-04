@@ -219,19 +219,33 @@ export type Database = {
       }
       opportunities: {
         Row: {
+          application_deadline: string | null
+          application_instructions: string | null
           applications: number | null
           approved_at: string | null
           approved_by: string | null
+          benefits: string[] | null
           company: string | null
+          contact_email: string | null
+          contact_phone: string | null
           created_at: string
           deadline: string
           description: string
           domain: string
+          employment_type: string | null
+          experience_required: string | null
+          external_id: string | null
+          featured: boolean | null
           id: string
           is_approved: boolean | null
           is_expired: boolean | null
           location: string | null
+          priority: number | null
           rejection_reason: string | null
+          remote_work_allowed: boolean | null
+          requirements: string[] | null
+          salary_range: string | null
+          source_platform: string | null
           source_url: string
           submitted_by: string | null
           tags: string[] | null
@@ -241,19 +255,33 @@ export type Database = {
           views: number | null
         }
         Insert: {
+          application_deadline?: string | null
+          application_instructions?: string | null
           applications?: number | null
           approved_at?: string | null
           approved_by?: string | null
+          benefits?: string[] | null
           company?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
           created_at?: string
           deadline: string
           description: string
           domain: string
+          employment_type?: string | null
+          experience_required?: string | null
+          external_id?: string | null
+          featured?: boolean | null
           id?: string
           is_approved?: boolean | null
           is_expired?: boolean | null
           location?: string | null
+          priority?: number | null
           rejection_reason?: string | null
+          remote_work_allowed?: boolean | null
+          requirements?: string[] | null
+          salary_range?: string | null
+          source_platform?: string | null
           source_url: string
           submitted_by?: string | null
           tags?: string[] | null
@@ -263,19 +291,33 @@ export type Database = {
           views?: number | null
         }
         Update: {
+          application_deadline?: string | null
+          application_instructions?: string | null
           applications?: number | null
           approved_at?: string | null
           approved_by?: string | null
+          benefits?: string[] | null
           company?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
           created_at?: string
           deadline?: string
           description?: string
           domain?: string
+          employment_type?: string | null
+          experience_required?: string | null
+          external_id?: string | null
+          featured?: boolean | null
           id?: string
           is_approved?: boolean | null
           is_expired?: boolean | null
           location?: string | null
+          priority?: number | null
           rejection_reason?: string | null
+          remote_work_allowed?: boolean | null
+          requirements?: string[] | null
+          salary_range?: string | null
+          source_platform?: string | null
           source_url?: string
           submitted_by?: string | null
           tags?: string[] | null
@@ -285,6 +327,65 @@ export type Database = {
           views?: number | null
         }
         Relationships: []
+      }
+      opportunity_categories: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      opportunity_tags: {
+        Row: {
+          created_at: string | null
+          id: string
+          opportunity_id: string | null
+          tag: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          opportunity_id?: string | null
+          tag: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          opportunity_id?: string | null
+          tag?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "opportunity_tags_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       platform_settings: {
         Row: {
@@ -385,6 +486,35 @@ export type Database = {
         }
         Relationships: []
       }
+      recently_viewed: {
+        Row: {
+          id: string
+          opportunity_id: string | null
+          user_id: string | null
+          viewed_at: string | null
+        }
+        Insert: {
+          id?: string
+          opportunity_id?: string | null
+          user_id?: string | null
+          viewed_at?: string | null
+        }
+        Update: {
+          id?: string
+          opportunity_id?: string | null
+          user_id?: string | null
+          viewed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recently_viewed_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       resume_audits: {
         Row: {
           created_at: string
@@ -460,6 +590,36 @@ export type Database = {
         }
         Relationships: []
       }
+      saved_searches: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+          notification_enabled: boolean | null
+          search_criteria: Json
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+          notification_enabled?: boolean | null
+          search_criteria: Json
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          notification_enabled?: boolean | null
+          search_criteria?: Json
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           assigned_at: string
@@ -507,6 +667,10 @@ export type Database = {
         Args: { profile_row: Database["public"]["Tables"]["profiles"]["Row"] }
         Returns: number
       }
+      cleanup_recently_viewed: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       has_role: {
         Args: {
           _user_id: string
@@ -526,6 +690,10 @@ export type Database = {
           _details?: Json
         }
         Returns: undefined
+      }
+      mark_expired_opportunities: {
+        Args: Record<PropertyKey, never>
+        Returns: number
       }
     }
     Enums: {
