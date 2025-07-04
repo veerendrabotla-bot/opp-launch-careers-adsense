@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from '@/components/ui/toaster';
@@ -19,6 +20,8 @@ import Contact from '@/pages/Contact';
 import Tailor from '@/pages/Tailor';
 import OpportunityDetail from '@/pages/OpportunityDetail';
 import AdminExpired from '@/pages/AdminExpired';
+import Index from '@/pages/Index';
+import NotFound from '@/pages/NotFound';
 
 // Admin pages
 import AdminDashboard from '@/pages/AdminDashboard';
@@ -78,52 +81,52 @@ function App() {
                 <Layout><AdminExpired /></Layout>
               </ProtectedRoute>
             } />
-            <Route path="admin" element={
+            <Route path="/admin/dashboard" element={
               <ProtectedRoute requireAdmin>
                 <AdminDashboard />
               </ProtectedRoute>
             } />
-            <Route path="admin/opportunities" element={
+            <Route path="/admin/opportunities" element={
               <ProtectedRoute requireAdmin>
                 <Admin />
               </ProtectedRoute>
             } />
-            <Route path="admin/users" element={
+            <Route path="/admin/users" element={
               <ProtectedRoute requireAdmin>
                 <UserManagement />
               </ProtectedRoute>
             } />
-            <Route path="admin/analytics" element={
+            <Route path="/admin/analytics" element={
               <ProtectedRoute requireAdmin>
                 <AdminAnalytics />
               </ProtectedRoute>
             } />
-            <Route path="admin/monetization" element={
+            <Route path="/admin/monetization" element={
               <ProtectedRoute requireAdmin>
                 <AdminMonetization />
               </ProtectedRoute>
             } />
-            <Route path="admin/settings" element={
+            <Route path="/admin/settings" element={
               <ProtectedRoute requireAdmin>
                 <AdminSettings />
               </ProtectedRoute>
             } />
-            <Route path="moderator" element={
+            <Route path="/moderator" element={
               <ProtectedRoute requireModerator>
                 <ModeratorDashboard />
               </ProtectedRoute>
             } />
-            <Route path="moderator/opportunities" element={
+            <Route path="/moderator/opportunities" element={
               <ProtectedRoute requireModerator>
                 <Admin />
               </ProtectedRoute>
             } />
-            <Route path="moderator/approved" element={
+            <Route path="/moderator/approved" element={
               <ProtectedRoute requireModerator>
                 <ModeratorApproved />
               </ProtectedRoute>
             } />
-            <Route path="moderator/users" element={
+            <Route path="/moderator/users" element={
               <ProtectedRoute requireModerator>
                 <ModeratorUsers />
               </ProtectedRoute>
@@ -131,8 +134,9 @@ function App() {
             <Route path="*" element={<NotFound />} />
           </Routes>
         </div>
-      </AuthProvider>
-    </Router>
+        <Toaster />
+      </Router>
+    </AuthProvider>
   );
 }
 
