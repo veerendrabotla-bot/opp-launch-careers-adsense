@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -17,6 +16,10 @@ import Submit from "./pages/Submit";
 import Profile from "./pages/Profile";
 import Bookmarks from "./pages/Bookmarks";
 import OpportunityDetail from "./pages/OpportunityDetail";
+import Blog from "./pages/Blog";
+import ResumeBuilder from "./pages/ResumeBuilder";
+import UserDashboard from "./pages/UserDashboard";
+import AdvertiserDashboard from "./pages/AdvertiserDashboard";
 
 // Moderator Pages
 import ModeratorDashboard from "./pages/ModeratorDashboard";
@@ -44,6 +47,8 @@ const App = () => (
               {/* Public Routes */}
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/blog" element={<Blog />} />
+              <Route path="/resume-builder" element={<ResumeBuilder />} />
               
               {/* Protected Routes */}
               <Route 
@@ -73,6 +78,14 @@ const App = () => (
               
               {/* User Routes */}
               <Route 
+                path="/dashboard" 
+                element={
+                  <ProtectedRoute>
+                    <UserDashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
                 path="/submit" 
                 element={
                   <ProtectedRoute>
@@ -93,6 +106,16 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <Bookmarks />
+                  </ProtectedRoute>
+                } 
+              />
+
+              {/* Advertiser Routes */}
+              <Route 
+                path="/advertiser/dashboard" 
+                element={
+                  <ProtectedRoute requireAdvertiser>
+                    <AdvertiserDashboard />
                   </ProtectedRoute>
                 } 
               />

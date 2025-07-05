@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -16,7 +15,8 @@ import {
   Upload,
   Shield,
   Crown,
-  BarChart3
+  BarChart3,
+  TrendingUp
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -40,11 +40,18 @@ const Navigation = () => {
   const navItems = [
     { name: 'Opportunities', href: '/opportunities', icon: FileText },
     { name: 'Scholarships', href: '/scholarships', icon: GraduationCap },
+    { name: 'Blog', href: '/blog', icon: FileText },
+    { name: 'Resume Builder', href: '/resume-builder', icon: FileText },
   ];
 
   const userNavItems = user ? [
+    { name: 'Dashboard', href: '/dashboard', icon: BarChart3 },
     { name: 'Submit', href: '/submit', icon: Upload },
     { name: 'Bookmarks', href: '/bookmarks', icon: BookmarkIcon },
+  ] : [];
+
+  const advertiserItems = (userRole === 'advertiser') ? [
+    { name: 'Advertiser', href: '/advertiser/dashboard', icon: TrendingUp }
   ] : [];
 
   const moderatorItems = (userRole === 'moderator' || userRole === 'admin') ? [
@@ -55,7 +62,7 @@ const Navigation = () => {
     { name: 'Admin', href: '/admin/dashboard', icon: Shield }
   ] : [];
 
-  const allNavItems = [...navItems, ...userNavItems, ...moderatorItems, ...adminItems];
+  const allNavItems = [...navItems, ...userNavItems, ...advertiserItems, ...moderatorItems, ...adminItems];
 
   return (
     <nav className="bg-white shadow-sm border-b sticky top-0 z-50">
