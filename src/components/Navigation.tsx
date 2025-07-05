@@ -1,29 +1,35 @@
 
-import React from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { cn } from '@/lib/utils';
+import NotificationBell from './NotificationBell';
 import { 
-  Home,
-  FileText, 
-  Upload,
-  Settings,
-  User,
-  Bookmark,
+  Menu, 
+  X, 
+  User, 
+  LogOut, 
+  Settings, 
+  BookmarkIcon, 
+  FileText,
   GraduationCap,
-  LogOut,
-  Menu,
-  X,
+  Upload,
   Shield,
-  Eye
+  Crown,
+  BarChart3
 } from 'lucide-react';
-import { useState } from 'react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const Navigation = () => {
   const { user, userRole, signOut } = useAuth();
-  const location = useLocation();
   const navigate = useNavigate();
+  const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleSignOut = async () => {
@@ -31,187 +37,165 @@ const Navigation = () => {
     navigate('/');
   };
 
-  const publicNavItems = [
-    { href: '/', label: 'Home', icon: Home },
-    { href: '/opportunities', label: 'Opportunities', icon: FileText },
-    { href: '/scholarships', label: 'Scholarships', icon: GraduationCap },
-    { href: '/about', label: 'About', icon: User },
-    { href: '/contact', label: 'Contact', icon: User },
+  const navItems = [
+    { name: 'Opportunities', href: '/opportunities', icon: FileText },
+    { name: 'Scholarships', href: '/scholarships', icon: GraduationCap },
   ];
 
-  const userNavItems = [
-    { href: '/dashboard', label: 'Dashboard', icon: Home },
-    { href: '/opportunities', label: 'Opportunities', icon: FileText },
-    { href: '/submit', label: 'Submit', icon: Upload },
-    { href: '/tailor', label: 'Tailor Resume', icon: Settings },
-    { href: '/bookmarks', label: 'Bookmarks', icon: Bookmark },
-    { href: '/scholarships', label: 'Scholarships', icon: GraduationCap },
-    { href: '/profile', label: 'Profile', icon: User },
-  ];
+  const userNavItems = user ? [
+    { name: 'Submit', href: '/submit', icon: Upload },
+    { name: 'Bookmarks', href: '/bookmarks', icon: BookmarkIcon },
+  ] : [];
 
-  const moderatorNavItems = [
-    { href: '/moderator', label: 'Mod Dashboard', icon: Eye },
-    { href: '/moderator/opportunities', label: 'Review Queue', icon: FileText },
-    { href: '/moderator/users', label: 'User Management', icon: User },
-    { href: '/opportunities', label: 'Live Opportunities', icon: FileText },
-    { href: '/profile', label: 'Profile', icon: User },
-  ];
+  const moderatorItems = (userRole === 'moderator' || userRole === 'admin') ? [
+    { name: 'Moderator', href: '/moderator/dashboard', icon: Crown }
+  ] : [];
 
-  const adminNavItems = [
-    { href: '/admin', label: 'Admin Dashboard', icon: Shield },
-    { href: '/admin/opportunities', label: 'Content Review', icon: FileText },
-    { href: '/admin/users', label: 'User Management', icon: User },
-    { href: '/admin/analytics', label: 'Analytics', icon: Settings },
-    { href: '/admin/settings', label: 'Settings', icon: Settings },
-    { href: '/profile', label: 'Profile', icon: User },
-  ];
+  const adminItems = userRole === 'admin' ? [
+    { name: 'Admin', href: '/admin/dashboard', icon: Shield }
+  ] : [];
 
-  const getNavItems = () => {
-    if (!user) return publicNavItems;
-    
-    switch (userRole) {
-      case 'admin':
-        return adminNavItems;
-      case 'moderator':
-        return moderatorNavItems;
-      default:
-        return userNavItems;
-    }
-  };
-
-  const navItems = getNavItems();
-
-  const getRoleDisplay = () => {
-    switch (userRole) {
-      case 'admin':
-        return { text: 'Admin', color: 'bg-red-100 text-red-800' };
-      case 'moderator':
-        return { text: 'Moderator', color: 'bg-blue-100 text-blue-800' };
-      default:
-        return { text: 'User', color: 'bg-gray-100 text-gray-800' };
-    }
-  };
+  const allNavItems = [...navItems, ...userNavItems, ...moderatorItems, ...adminItems];
 
   return (
-    <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
+    <nav className="bg-white shadow-sm border-b sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
+          {/* Logo and primary nav */}
           <div className="flex items-center">
             <Link to="/" className="flex-shrink-0 flex items-center">
-              <h1 className="text-xl font-bold text-blue-600">OpportunityHub</h1>
+              <span className="text-xl font-bold text-blue-600">OpportunityHub</span>
             </Link>
-
-            {/* Desktop Navigation */}
-            <div className="hidden md:ml-8 md:flex md:space-x-4">
-              {navItems.map((item) => (
-                <Link
-                  key={item.href}
-                  to={item.href}
-                  className={cn(
-                    'flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors',
-                    location.pathname === item.href
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                  )}
-                >
-                  <item.icon className="h-4 w-4" />
-                  {item.label}
-                </Link>
-              ))}
+            
+            {/* Desktop navigation */}
+            <div className="hidden md:ml-6 md:flex md:space-x-8">
+              {allNavItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = location.pathname === item.href || 
+                                (item.href !== '/' && location.pathname.startsWith(item.href));
+                
+                return (
+                  <Link
+                    key={item.name}
+                    to={item.href}
+                    className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors ${
+                      isActive
+                        ? 'border-blue-500 text-gray-900'
+                        : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                    }`}
+                  >
+                    <Icon className="h-4 w-4 mr-2" />
+                    {item.name}
+                  </Link>
+                );
+              })}
             </div>
           </div>
 
-          {/* Desktop Auth Actions */}
-          <div className="hidden md:flex md:items-center md:space-x-4">
+          {/* Right side */}
+          <div className="flex items-center space-x-4">
             {user ? (
-              <div className="flex items-center space-x-4">
-                <div className="text-right">
-                  <div className="text-sm text-gray-700">
-                    Welcome, {user.email}
-                  </div>
-                  {userRole && (
-                    <div className="flex justify-end mt-1">
-                      <span className={`text-xs px-2 py-1 rounded ${getRoleDisplay().color}`}>
-                        {getRoleDisplay().text}
-                      </span>
+              <>
+                <NotificationBell />
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="flex items-center space-x-2">
+                      <User className="h-4 w-4" />
+                      <span className="hidden sm:inline-block">Account</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <div className="px-2 py-1.5">
+                      <p className="text-sm font-medium">{user.email}</p>
+                      <p className="text-xs text-gray-500 capitalize">{userRole} Account</p>
                     </div>
-                  )}
-                </div>
-                <Button onClick={handleSignOut} variant="outline" size="sm">
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Sign Out
-                </Button>
-              </div>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link to="/profile" className="flex items-center">
+                        <User className="h-4 w-4 mr-2" />
+                        Profile
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/bookmarks" className="flex items-center">
+                        <BookmarkIcon className="h-4 w-4 mr-2" />
+                        Bookmarks
+                      </Link>
+                    </DropdownMenuItem>
+                    {(userRole === 'moderator' || userRole === 'admin') && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem asChild>
+                          <Link to="/moderator/dashboard" className="flex items-center">
+                            <Crown className="h-4 w-4 mr-2" />
+                            Moderator Panel
+                          </Link>
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                    {userRole === 'admin' && (
+                      <DropdownMenuItem asChild>
+                        <Link to="/admin/dashboard" className="flex items-center">
+                          <Shield className="h-4 w-4 mr-2" />
+                          Admin Panel
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleSignOut}>
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Sign Out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
             ) : (
               <Link to="/auth">
                 <Button>Sign In</Button>
               </Link>
             )}
-          </div>
 
-          {/* Mobile menu button */}
-          <div className="md:hidden flex items-center">
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="text-gray-600 hover:text-gray-900 p-2"
-            >
-              {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-            </button>
+            {/* Mobile menu button */}
+            <div className="md:hidden">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              >
+                {mobileMenuOpen ? (
+                  <X className="h-5 w-5" />
+                ) : (
+                  <Menu className="h-5 w-5" />
+                )}
+              </Button>
+            </div>
           </div>
         </div>
 
-        {/* Mobile Navigation */}
+        {/* Mobile menu */}
         {mobileMenuOpen && (
           <div className="md:hidden">
-            <div className="px-2 pt-2 pb-3 space-y-1">
-              {navItems.map((item) => (
-                <Link
-                  key={item.href}
-                  to={item.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={cn(
-                    'flex items-center gap-2 px-3 py-2 rounded-md text-base font-medium',
-                    location.pathname === item.href
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                  )}
-                >
-                  <item.icon className="h-5 w-5" />
-                  {item.label}
-                </Link>
-              ))}
-              
-              {user ? (
-                <div className="border-t pt-3 mt-3">
-                  <div className="px-3 py-2">
-                    <div className="text-sm text-gray-700 mb-2">
-                      {user.email}
-                    </div>
-                    {userRole && (
-                      <span className={`text-xs px-2 py-1 rounded ${getRoleDisplay().color}`}>
-                        {getRoleDisplay().text}
-                      </span>
-                    )}
-                  </div>
-                  <button
-                    onClick={handleSignOut}
-                    className="w-full text-left flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md"
-                  >
-                    <LogOut className="h-5 w-5" />
-                    Sign Out
-                  </button>
-                </div>
-              ) : (
-                <div className="border-t pt-3 mt-3">
+            <div className="px-2 pt-2 pb-3 space-y-1 bg-white border-t">
+              {allNavItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = location.pathname === item.href;
+                
+                return (
                   <Link
-                    to="/auth"
+                    key={item.name}
+                    to={item.href}
+                    className={`flex items-center px-3 py-2 rounded-md text-base font-medium transition-colors ${
+                      isActive
+                        ? 'bg-blue-50 text-blue-700'
+                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                    }`}
                     onClick={() => setMobileMenuOpen(false)}
-                    className="block px-3 py-2"
                   >
-                    <Button className="w-full">Sign In</Button>
+                    <Icon className="h-5 w-5 mr-3" />
+                    {item.name}
                   </Link>
-                </div>
-              )}
+                );
+              })}
             </div>
           </div>
         )}

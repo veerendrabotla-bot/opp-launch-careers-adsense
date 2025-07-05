@@ -1,48 +1,73 @@
 
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 import { 
-  Home,
   FileText, 
   Users, 
-  Bell, 
-  CheckCircle
+  CheckCircle, 
+  Clock, 
+  Settings,
+  BarChart3,
+  Shield
 } from 'lucide-react';
 
 const ModeratorNavigation = () => {
   const location = useLocation();
 
   const navItems = [
-    { href: '/moderator', label: 'Dashboard', icon: Home },
-    { href: '/moderator/opportunities', label: 'Review Opportunities', icon: FileText },
-    { href: '/moderator/approved', label: 'Approved', icon: CheckCircle },
-    { href: '/moderator/users', label: 'Users', icon: Users },
-    { href: '/moderator/notifications', label: 'Notifications', icon: Bell },
+    {
+      path: '/moderator/dashboard',
+      label: 'Dashboard',
+      icon: BarChart3
+    },
+    {
+      path: '/moderator/pending',
+      label: 'Pending Review',
+      icon: Clock
+    },
+    {
+      path: '/moderator/approved',
+      label: 'Approved Content',
+      icon: CheckCircle
+    },
+    {
+      path: '/moderator/users',
+      label: 'User Management',
+      icon: Users
+    },
+    {
+      path: '/moderator/notifications',
+      label: 'Notifications',
+      icon: FileText
+    }
   ];
 
   return (
-    <nav className="bg-white border-b border-gray-200">
+    <div className="bg-white border-b">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex space-x-8 overflow-x-auto">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              to={item.href}
-              className={cn(
-                'flex items-center gap-2 px-3 py-4 text-sm font-medium border-b-2 whitespace-nowrap',
-                location.pathname === item.href
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              )}
-            >
-              <item.icon className="h-4 w-4" />
-              {item.label}
-            </Link>
-          ))}
+        <div className="flex items-center space-x-8 py-4 overflow-x-auto">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = location.pathname === item.path;
+            
+            return (
+              <Link key={item.path} to={item.path}>
+                <Button
+                  variant={isActive ? "default" : "ghost"}
+                  className={`flex items-center gap-2 whitespace-nowrap ${
+                    isActive ? 'bg-blue-600 text-white' : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  <Icon className="h-4 w-4" />
+                  {item.label}
+                </Button>
+              </Link>
+            );
+          })}
         </div>
       </div>
-    </nav>
+    </div>
   );
 };
 

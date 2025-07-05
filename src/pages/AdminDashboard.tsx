@@ -1,206 +1,183 @@
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { useAdmin } from '@/hooks/useAdmin';
-import { useUserRoles } from '@/hooks/useUserRoles';
 import { supabase } from '@/integrations/supabase/client';
+import BackButton from '@/components/BackButton';
 import { 
   Users, 
   FileText, 
-  TrendingUp, 
+  CheckCircle, 
+  Clock, 
   AlertTriangle,
-  CheckCircle,
-  Clock,
+  TrendingUp,
   Shield,
   Activity,
-  Database
+  Settings,
+  Bell
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const AdminDashboard = () => {
-  const { allOpportunities, pendingOpportunities, isAdmin, refetch } = useAdmin();
-  const { users, refetch: refetchUsers } = useUserRoles();
-  const [systemStats, setSystemStats] = useState({
+  const [stats, setStats] = useState({
     totalUsers: 0,
-    activeUsers: 0,
-    recentActivity: 0
+    totalOpportunities: 0,
+    pendingOpportunities: 0,
+    approvedOpportunities: 0,
+    expiredOpportunities: 0,
+    totalNotifications: 0
   });
-  const [initialized, setInitialized] = useState(false);
 
-  const fetchSystemStats = useCallback(async () => {
-    try {
-      console.log('Fetching system stats...');
-      const { data: profiles, error } = await supabase
-        .from('profiles')
-        .select('id, created_at');
-
-      if (!error && profiles) {
-        const today = new Date();
-        const lastWeek = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-        
-        setSystemStats({
-          totalUsers: profiles.length,
-          activeUsers: profiles.filter(p => new Date(p.created_at) > lastWeek).length,
-          recentActivity: profiles.filter(p => new Date(p.created_at) > lastWeek).length
-        });
-        console.log('System stats fetched successfully');
-      }
-    } catch (error) {
-      console.error('Error fetching system stats:', error);
-    }
+  useEffect(() => {
+    fetchAdminStats();
   }, []);
 
-  const setupRealTimeUpdates = useCallback(() => {
-    if (!isAdmin || initialized) return;
+  const fetchAdminStats = async () => {
+    try {
+      // Fetch users count
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id');
 
-    console.log('Setting up real-time updates for admin dashboard');
+      // Fetch opportunities stats
+      const { data: opportunities } = await supabase
+        .from('opportunities')
+        .select('id, is_approved, is_expired, deadline');
 
-    const opportunitiesChannel = supabase
-      .channel('admin-opportunities-realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'opportunities',
-        },
-        () => {
-          console.log('Real-time opportunity update received');
-          setTimeout(() => {
-            refetch();
-          }, 1000);
-        }
-      )
-      .subscribe();
+      // Fetch notifications count
+      const { data: notifications } = await supabase
+        .from('notifications')
+        .select('id');
 
-    const usersChannel = supabase
-      .channel('admin-users-realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'user_roles',
-        },
-        () => {
-          console.log('Real-time user role update received');
-          setTimeout(() => {
-            refetchUsers();
-            fetchSystemStats();
-          }, 1000);
-        }
-      )
-      .subscribe();
+      const total = opportunities?.length || 0;
+      const pending = opportunities?.filter(opp => !opp.is_approved).length || 0;
+      const approved = opportunities?.filter(opp => opp.is_approved).length || 0;
+      const expired = opportunities?.filter(opp => 
+        new Date(opp.deadline) < new Date() || opp.is_expired
+      ).length || 0;
 
-    return () => {
-      supabase.removeChannel(opportunitiesChannel);
-      supabase.removeChannel(usersChannel);
-    };
-  }, [isAdmin, initialized, refetch, refetchUsers, fetchSystemStats]);
-
-  useEffect(() => {
-    if (isAdmin && !initialized) {
-      fetchSystemStats();
-      setInitialized(true);
+      setStats({
+        totalUsers: profiles?.length || 0,
+        totalOpportunities: total,
+        pendingOpportunities: pending,
+        approvedOpportunities: approved,
+        expiredOpportunities: expired,
+        totalNotifications: notifications?.length || 0
+      });
+    } catch (error) {
+      console.error('Error fetching admin stats:', error);
     }
-  }, [isAdmin, initialized, fetchSystemStats]);
+  };
 
-  useEffect(() => {
-    if (isAdmin && initialized) {
-      const cleanup = setupRealTimeUpdates();
-      return cleanup;
+  const quickActions = [
+    {
+      title: "User Management",
+      description: "Manage user roles and permissions",
+      icon: Users,
+      link: "/admin/users",
+      color: "bg-blue-100 text-blue-600"
+    },
+    {
+      title: "Content Moderation",
+      description: "Review and approve opportunities",
+      icon: FileText,
+      link: "/moderator/pending",
+      color: "bg-green-100 text-green-600"
+    },
+    {
+      title: "Notifications",
+      description: "Send platform notifications",
+      icon: Bell,
+      link: "/admin/notifications",
+      color: "bg-purple-100 text-purple-600"
+    },
+    {
+      title: "Expired Content",
+      description: "Manage expired opportunities",
+      icon: AlertTriangle,
+      link: "/admin/expired",
+      color: "bg-red-100 text-red-600"
+    },
+    {
+      title: "Analytics",
+      description: "View platform analytics",
+      icon: TrendingUp,
+      link: "/admin/analytics",
+      color: "bg-yellow-100 text-yellow-600"
+    },
+    {
+      title: "Settings",
+      description: "Platform configuration",
+      icon: Settings,
+      link: "/admin/settings",
+      color: "bg-gray-100 text-gray-600"
     }
-  }, [isAdmin, initialized, setupRealTimeUpdates]);
+  ];
 
-  if (!isAdmin) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Card className="max-w-md">
-          <CardContent className="pt-6 text-center">
-            <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Access Denied</h2>
-            <p className="text-gray-600">Admin privileges required.</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  const approvedOpportunities = allOpportunities.filter(opp => opp.is_approved);
-  const expiredOpportunities = allOpportunities.filter(opp => 
-    new Date(opp.deadline) < new Date()
-  );
-  const todayOpportunities = allOpportunities.filter(opp => {
-    const today = new Date().toDateString();
-    return new Date(opp.created_at).toDateString() === today;
-  });
-
-  const adminUsers = users.filter(user => 
-    user.user_roles.some(role => role.role === 'admin')
-  );
-  const moderatorUsers = users.filter(user => 
-    user.user_roles.some(role => role.role === 'moderator')
-  );
-
-  const stats = [
+  const statCards = [
+    {
+      title: "Total Users",
+      value: stats.totalUsers,
+      icon: Users,
+      color: "bg-blue-100 text-blue-600"
+    },
     {
       title: "Total Opportunities",
-      value: allOpportunities.length,
+      value: stats.totalOpportunities,
       icon: FileText,
-      color: "bg-blue-100 text-blue-600",
-      trend: `+${todayOpportunities.length} today`
+      color: "bg-green-100 text-green-600"
     },
     {
       title: "Pending Review",
-      value: pendingOpportunities.length,
+      value: stats.pendingOpportunities,
       icon: Clock,
-      color: "bg-yellow-100 text-yellow-600",
-      trend: "Needs attention"
+      color: "bg-yellow-100 text-yellow-600"
     },
     {
-      title: "Total Users",
-      value: systemStats.totalUsers,
-      icon: Users,
-      color: "bg-green-100 text-green-600",
-      trend: `${systemStats.activeUsers} active this week`
+      title: "Approved",
+      value: stats.approvedOpportunities,
+      icon: CheckCircle,
+      color: "bg-green-100 text-green-600"
     },
     {
-      title: "System Health",
-      value: "100%",
-      icon: Activity,
-      color: "bg-purple-100 text-purple-600",
-      trend: "All systems operational"
+      title: "Expired",
+      value: stats.expiredOpportunities,
+      icon: AlertTriangle,
+      color: "bg-red-100 text-red-600"
+    },
+    {
+      title: "Notifications",
+      value: stats.totalNotifications,
+      icon: Bell,
+      color: "bg-purple-100 text-purple-600"
     }
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20 md:pb-0">
+    <div className="min-h-screen bg-gray-50">
       <div className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-              <p className="text-gray-600 mt-2">Platform overview and real-time monitoring</p>
+            <div className="flex items-center gap-4">
+              <BackButton to="/opportunities" />
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+                <p className="text-gray-600 mt-2">Platform administration and management</p>
+              </div>
             </div>
-            <div className="flex items-center gap-3">
-              <Badge className="bg-red-100 text-red-800">
-                <Shield className="h-3 w-3 mr-1" />
-                Admin Access
-              </Badge>
-              <Button onClick={() => window.location.reload()} variant="outline" size="sm">
-                <Activity className="h-4 w-4 mr-2" />
-                Refresh Data
-              </Button>
-            </div>
+            <Badge className="bg-red-100 text-red-800">
+              <Shield className="h-3 w-3 mr-1" />
+              Admin Access
+            </Badge>
           </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Real-time Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {stats.map((stat, index) => (
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-8">
+          {statCards.map((stat, index) => (
             <Card key={index} className="hover:shadow-lg transition-shadow">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
@@ -210,7 +187,6 @@ const AdminDashboard = () => {
                   <div className="text-right">
                     <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
                     <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-                    <p className="text-xs text-gray-500">{stat.trend}</p>
                   </div>
                 </div>
               </CardContent>
@@ -218,157 +194,28 @@ const AdminDashboard = () => {
           ))}
         </div>
 
-        {/* Quick Actions & Real-time Monitoring */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {/* Quick Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="h-5 w-5" />
-                Admin Quick Actions
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <Button className="w-full justify-start" variant="outline">
-                  <FileText className="h-4 w-4 mr-2" />
-                  Review Pending Opportunities ({pendingOpportunities.length})
-                </Button>
-                <Button className="w-full justify-start" variant="outline">
-                  <Users className="h-4 w-4 mr-2" />
-                  Manage User Roles ({users.length} users)
-                </Button>
-                <Button className="w-full justify-start" variant="outline">
-                  <TrendingUp className="h-4 w-4 mr-2" />
-                  View Analytics Dashboard
-                </Button>
-                <Button className="w-full justify-start" variant="outline">
-                  <Database className="h-4 w-4 mr-2" />
-                  System Settings & Configuration
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Real-time System Status */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Activity className="h-5 w-5" />
-                Real-time System Status
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Database Connection</span>
-                  <Badge className="bg-green-100 text-green-800">
-                    <CheckCircle className="h-3 w-3 mr-1" />
-                    Healthy
-                  </Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Authentication System</span>
-                  <Badge className="bg-green-100 text-green-800">
-                    <CheckCircle className="h-3 w-3 mr-1" />
-                    Online
-                  </Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Real-time Updates</span>
-                  <Badge className="bg-green-100 text-green-800">
-                    <CheckCircle className="h-3 w-3 mr-1" />
-                    Active
-                  </Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Storage System</span>
-                  <Badge className="bg-green-100 text-green-800">
-                    <CheckCircle className="h-3 w-3 mr-1" />
-                    Available
-                  </Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* User Management Overview */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>User Distribution</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Regular Users</span>
-                  <Badge variant="secondary">
-                    {users.filter(u => u.user_roles.some(r => r.role === 'user')).length}
-                  </Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Moderators</span>
-                  <Badge className="bg-blue-100 text-blue-800">
-                    {moderatorUsers.length}
-                  </Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Administrators</span>
-                  <Badge className="bg-red-100 text-red-800">
-                    {adminUsers.length}
-                  </Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Content Overview</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Approved Content</span>
-                  <Badge className="bg-green-100 text-green-800">
-                    {approvedOpportunities.length}
-                  </Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Pending Review</span>
-                  <Badge className="bg-yellow-100 text-yellow-800">
-                    {pendingOpportunities.length}
-                  </Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Expired Content</span>
-                  <Badge className="bg-red-100 text-red-800">
-                    {expiredOpportunities.length}
-                  </Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Activity</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {allOpportunities.slice(0, 3).map(opportunity => (
-                  <div key={opportunity.id} className="text-xs p-2 bg-gray-50 rounded">
-                    <p className="font-medium truncate">{opportunity.title}</p>
-                    <p className="text-gray-500">
-                      {opportunity.is_approved ? 'Approved' : 'Pending'} • 
-                      {new Date(opportunity.created_at).toLocaleDateString()}
-                    </p>
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {quickActions.map((action, index) => (
+            <Card key={index} className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3">
+                  <div className={`p-2 rounded-lg ${action.color}`}>
+                    <action.icon className="h-5 w-5" />
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                  {action.title}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600 mb-4">{action.description}</p>
+                <Link to={action.link}>
+                  <Button className="w-full">
+                    Access {action.title}
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       </div>
     </div>
