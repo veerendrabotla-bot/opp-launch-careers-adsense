@@ -17,6 +17,16 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
+interface AdData {
+  id: string;
+  title: string;
+  status: string;
+  views: number;
+  clicks: number;
+  budget: number;
+  impressions: number;
+}
+
 const AdvertiserDashboard = () => {
   const [stats, setStats] = useState({
     activeAds: 0,
@@ -33,19 +43,30 @@ const AdvertiserDashboard = () => {
 
   const fetchAdvertiserStats = async () => {
     try {
-      // Fetch advertiser statistics
-      const { data: ads } = await supabase
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Fetch advertiser statistics from ads table
+      const { data: ads, error } = await supabase
         .from('ads')
         .select('*')
-        .eq('advertiser_id', (await supabase.auth.getUser()).data.user?.id);
+        .eq('advertiser_id', user.id);
+
+      if (error) {
+        console.error('Error fetching ads:', error);
+        return;
+      }
+
+      const adsData = ads as AdData[] || [];
 
       setStats({
-        activeAds: ads?.filter(ad => ad.status === 'active').length || 0,
-        totalViews: ads?.reduce((sum, ad) => sum + (ad.views || 0), 0) || 0,
-        totalClicks: ads?.reduce((sum, ad) => sum + (ad.clicks || 0), 0) || 0,
-        budget: ads?.reduce((sum, ad) => sum + (ad.budget || 0), 0) || 0,
-        impressions: ads?.reduce((sum, ad) => sum + (ad.impressions || 0), 0) || 0,
-        ctr: ads?.length ? (ads.reduce((sum, ad) => sum + (ad.clicks || 0), 0) / ads.reduce((sum, ad) => sum + (ad.impressions || 1), 0) * 100) : 0
+        activeAds: adsData.filter(ad => ad.status === 'active').length,
+        totalViews: adsData.reduce((sum, ad) => sum + (ad.views || 0), 0),
+        totalClicks: adsData.reduce((sum, ad) => sum + (ad.clicks || 0), 0),
+        budget: adsData.reduce((sum, ad) => sum + (ad.budget || 0), 0),
+        impressions: adsData.reduce((sum, ad) => sum + (ad.impressions || 0), 0),
+        ctr: adsData.length ? (adsData.reduce((sum, ad) => sum + (ad.clicks || 0), 0) / Math.max(adsData.reduce((sum, ad) => sum + (ad.impressions || 1), 0), 1) * 100) : 0
       });
     } catch (error) {
       console.error('Error fetching advertiser stats:', error);

@@ -39,6 +39,66 @@ export type Database = {
         }
         Relationships: []
       }
+      ads: {
+        Row: {
+          advertiser_id: string
+          budget: number
+          clicks: number
+          created_at: string
+          description: string | null
+          end_date: string | null
+          id: string
+          image_url: string | null
+          impressions: number
+          spent: number
+          start_date: string | null
+          status: string
+          target_audience: Json | null
+          target_url: string
+          title: string
+          updated_at: string
+          views: number
+        }
+        Insert: {
+          advertiser_id: string
+          budget?: number
+          clicks?: number
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          image_url?: string | null
+          impressions?: number
+          spent?: number
+          start_date?: string | null
+          status?: string
+          target_audience?: Json | null
+          target_url: string
+          title: string
+          updated_at?: string
+          views?: number
+        }
+        Update: {
+          advertiser_id?: string
+          budget?: number
+          clicks?: number
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          image_url?: string | null
+          impressions?: number
+          spent?: number
+          start_date?: string | null
+          status?: string
+          target_audience?: Json | null
+          target_url?: string
+          title?: string
+          updated_at?: string
+          views?: number
+        }
+        Relationships: []
+      }
       analytics: {
         Row: {
           created_at: string
@@ -85,6 +145,104 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      applications: {
+        Row: {
+          applied_at: string
+          cover_letter: string | null
+          id: string
+          notes: string | null
+          opportunity_id: string
+          resume_url: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          applied_at?: string
+          cover_letter?: string | null
+          id?: string
+          notes?: string | null
+          opportunity_id: string
+          resume_url?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          applied_at?: string
+          cover_letter?: string | null
+          id?: string
+          notes?: string | null
+          opportunity_id?: string
+          resume_url?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "applications_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      blog_posts: {
+        Row: {
+          author_id: string
+          content: string
+          created_at: string
+          excerpt: string | null
+          featured_image_url: string | null
+          id: string
+          published_at: string | null
+          seo_description: string | null
+          seo_title: string | null
+          slug: string
+          status: string
+          tags: string[] | null
+          title: string
+          updated_at: string
+          views: number
+        }
+        Insert: {
+          author_id: string
+          content: string
+          created_at?: string
+          excerpt?: string | null
+          featured_image_url?: string | null
+          id?: string
+          published_at?: string | null
+          seo_description?: string | null
+          seo_title?: string | null
+          slug: string
+          status?: string
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+          views?: number
+        }
+        Update: {
+          author_id?: string
+          content?: string
+          created_at?: string
+          excerpt?: string | null
+          featured_image_url?: string | null
+          id?: string
+          published_at?: string | null
+          seo_description?: string | null
+          seo_title?: string | null
+          slug?: string
+          status?: string
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+          views?: number
+        }
+        Relationships: []
       }
       bookmarks: {
         Row: {
@@ -697,7 +855,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "user" | "admin" | "moderator"
+      app_role: "user" | "admin" | "moderator" | "advertiser"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -813,7 +971,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["user", "admin", "moderator"],
+      app_role: ["user", "admin", "moderator", "advertiser"],
     },
   },
 } as const

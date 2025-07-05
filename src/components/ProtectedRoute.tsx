@@ -10,19 +10,21 @@ interface ProtectedRouteProps {
   requireAuth?: boolean;
   requireAdmin?: boolean;
   requireModerator?: boolean;
+  requireAdvertiser?: boolean;
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
   children, 
   requireAuth = true, 
   requireAdmin = false,
-  requireModerator = false
+  requireModerator = false,
+  requireAdvertiser = false
 }) => {
   const { user, loading, userRole } = useAuth();
   const location = useLocation();
 
   console.log('ProtectedRoute - user:', user?.email, 'userRole:', userRole, 'loading:', loading);
-  console.log('ProtectedRoute - requireAuth:', requireAuth, 'requireAdmin:', requireAdmin, 'requireModerator:', requireModerator);
+  console.log('ProtectedRoute - requireAuth:', requireAuth, 'requireAdmin:', requireAdmin, 'requireModerator:', requireModerator, 'requireAdvertiser:', requireAdvertiser);
 
   // Show loading state while auth is being determined
   if (loading) {
@@ -77,6 +79,27 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
             </p>
             <p className="text-sm text-gray-500">
               Current role: {userRole || 'None'} • Required: Moderator or Admin
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Check advertiser requirement
+  if (requireAdvertiser && userRole !== 'advertiser') {
+    console.log('Access denied - advertiser required, user role:', userRole);
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full">
+          <CardContent className="pt-6 text-center">
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2 text-gray-900">Access Denied</h2>
+            <p className="text-gray-600 mb-4">
+              You don't have permission to access this area. Advertiser privileges are required.
+            </p>
+            <p className="text-sm text-gray-500">
+              Current role: {userRole || 'None'} • Required: Advertiser
             </p>
           </CardContent>
         </Card>

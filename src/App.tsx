@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -20,6 +21,8 @@ import Blog from "./pages/Blog";
 import ResumeBuilder from "./pages/ResumeBuilder";
 import UserDashboard from "./pages/UserDashboard";
 import AdvertiserDashboard from "./pages/AdvertiserDashboard";
+import AdvertiserCreateAd from "./pages/AdvertiserCreateAd";
+import AdvertiserAds from "./pages/AdvertiserAds";
 
 // Moderator Pages
 import ModeratorDashboard from "./pages/ModeratorDashboard";
@@ -116,6 +119,22 @@ const App = () => (
                 element={
                   <ProtectedRoute requireAdvertiser>
                     <AdvertiserDashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/advertiser/create-ad" 
+                element={
+                  <ProtectedRoute requireAdvertiser>
+                    <AdvertiserCreateAd />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/advertiser/ads" 
+                element={
+                  <ProtectedRoute requireAdvertiser>
+                    <AdvertiserAds />
                   </ProtectedRoute>
                 } 
               />
