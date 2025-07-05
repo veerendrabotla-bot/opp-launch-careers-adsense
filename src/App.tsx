@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -20,6 +19,8 @@ import OpportunityDetail from "./pages/OpportunityDetail";
 import Blog from "./pages/Blog";
 import ResumeBuilder from "./pages/ResumeBuilder";
 import UserDashboard from "./pages/UserDashboard";
+import Notifications from "./pages/Notifications";
+import Applications from "./pages/Applications";
 import AdvertiserDashboard from "./pages/AdvertiserDashboard";
 import AdvertiserCreateAd from "./pages/AdvertiserCreateAd";
 import AdvertiserAds from "./pages/AdvertiserAds";
@@ -35,6 +36,8 @@ import AdminDashboard from "./pages/AdminDashboard";
 import UserManagement from "./pages/UserManagement";
 import AdminExpired from "./pages/AdminExpired";
 import AdminNotifications from "./pages/AdminNotifications";
+import AdminAnalytics from "./pages/AdminAnalytics";
+import AdminSettings from "./pages/AdminSettings";
 
 const queryClient = new QueryClient();
 
@@ -112,6 +115,22 @@ const App = () => (
                   </ProtectedRoute>
                 } 
               />
+              <Route 
+                path="/notifications" 
+                element={
+                  <ProtectedRoute>
+                    <Notifications />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/applications" 
+                element={
+                  <ProtectedRoute>
+                    <Applications />
+                  </ProtectedRoute>
+                } 
+              />
 
               {/* Advertiser Routes */}
               <Route 
@@ -175,6 +194,14 @@ const App = () => (
 
               {/* Admin Routes */}
               <Route 
+                path="/admin" 
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <AdminDashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
                 path="/admin/dashboard" 
                 element={
                   <ProtectedRoute requireAdmin>
@@ -203,6 +230,22 @@ const App = () => (
                 element={
                   <ProtectedRoute requireAdmin>
                     <AdminNotifications />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/analytics" 
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <AdminAnalytics />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/settings" 
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <AdminSettings />
                   </ProtectedRoute>
                 } 
               />

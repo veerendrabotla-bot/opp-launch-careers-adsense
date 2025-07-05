@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import ModeratorNavigation from '@/components/ModeratorNavigation';
 import { useAdmin } from '@/hooks/useAdmin';
 import { supabase } from '@/integrations/supabase/client';
+import { Link } from 'react-router-dom';
 import { 
   FileText, 
   Users, 
@@ -25,6 +26,7 @@ const ModeratorDashboard = () => {
     approvedToday: 0,
     totalApproved: 0
   });
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
 
   useEffect(() => {
     if (isModerator) {
@@ -33,6 +35,33 @@ const ModeratorDashboard = () => {
     }
   }, [isModerator]);
 
+  useEffect(() => {
+    if (allOpportunities.length > 0) {
+      const today = new Date().toDateString();
+      const approvedToday = allOpportunities.filter(opp => 
+        opp.is_approved && 
+        opp.approved_at && 
+        new Date(opp.approved_at).toDateString() === today
+      ).length;
+
+      const totalApproved = allOpportunities.filter(opp => opp.is_approved).length;
+
+      setStats(prev => ({
+        ...prev,
+        pendingCount: pendingOpportunities.length,
+        approvedToday,
+        totalApproved
+      }));
+
+      // Set real recent activity from actual opportunities
+      const sortedOpportunities = [...allOpportunities]
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .slice(0, 5);
+      
+      setRecentActivity(sortedOpportunities);
+    }
+  }, [allOpportunities, pendingOpportunities]);
+
   const fetchModeratorStats = async () => {
     try {
       // Fetch user count
@@ -40,20 +69,10 @@ const ModeratorDashboard = () => {
         .from('profiles')
         .select('id');
 
-      // Calculate approved today
-      const today = new Date().toDateString();
-      const approvedToday = allOpportunities.filter(opp => 
-        opp.is_approved && new Date(opp.approved_at || '').toDateString() === today
-      ).length;
-
-      const totalApproved = allOpportunities.filter(opp => opp.is_approved).length;
-
-      setStats({
-        totalUsers: profiles?.length || 0,
-        pendingCount: pendingOpportunities.length,
-        approvedToday,
-        totalApproved
-      });
+      setStats(prev => ({
+        ...prev,
+        totalUsers: profiles?.length || 0
+      }));
     } catch (error) {
       console.error('Error fetching moderator stats:', error);
     }
@@ -176,22 +195,30 @@ const ModeratorDashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                <Button className="w-full justify-start" variant="outline">
-                  <FileText className="h-4 w-4 mr-2" />
-                  Review Pending Content ({stats.pendingCount})
-                </Button>
-                <Button className="w-full justify-start" variant="outline">
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  View Approved Content
-                </Button>
-                <Button className="w-full justify-start" variant="outline">
-                  <Users className="h-4 w-4 mr-2" />
-                  Manage Users ({stats.totalUsers})
-                </Button>
-                <Button className="w-full justify-start" variant="outline">
-                  <Activity className="h-4 w-4 mr-2" />
-                  Platform Activity Log
-                </Button>
+                <Link to="/moderator/pending">
+                  <Button className="w-full justify-start" variant="outline">
+                    <FileText className="h-4 w-4 mr-2" />
+                    Review Pending Content ({stats.pendingCount})
+                  </Button>
+                </Link>
+                <Link to="/moderator/approved">
+                  <Button className="w-full justify-start" variant="outline">
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    View Approved Content
+                  </Button>
+                </Link>
+                <Link to="/moderator/users">
+                  <Button className="w-full justify-start" variant="outline">
+                    <Users className="h-4 w-4 mr-2" />
+                    Manage Users ({stats.totalUsers})
+                  </Button>
+                </Link>
+                <Link to="/admin/analytics">
+                  <Button className="w-full justify-start" variant="outline">
+                    <Activity className="h-4 w-4 mr-2" />
+                    Platform Activity Log
+                  </Button>
+                </Link>
               </div>
             </CardContent>
           </Card>
@@ -205,21 +232,27 @@ const ModeratorDashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {allOpportunities.slice(0, 5).map((opportunity) => (
-                  <div key={opportunity.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex-1">
-                      <p className="font-medium text-sm truncate">{opportunity.title}</p>
-                      <p className="text-xs text-gray-500">
-                        {new Date(opportunity.created_at).toLocaleDateString()}
-                      </p>
+                {recentActivity.length > 0 ? (
+                  recentActivity.map((opportunity) => (
+                    <div key={opportunity.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex-1">
+                        <p className="font-medium text-sm truncate">{opportunity.title}</p>
+                        <p className="text-xs text-gray-500">
+                          {new Date(opportunity.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <Badge 
+                        className={opportunity.is_approved ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}
+                      >
+                        {opportunity.is_approved ? "Approved" : "Pending"}
+                      </Badge>
                     </div>
-                    <Badge 
-                      className={opportunity.is_approved ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}
-                    >
-                      {opportunity.is_approved ? "Approved" : "Pending"}
-                    </Badge>
+                  ))
+                ) : (
+                  <div className="text-center py-4">
+                    <p className="text-sm text-gray-500">No recent activity</p>
                   </div>
-                ))}
+                )}
               </div>
             </CardContent>
           </Card>

@@ -1,6 +1,5 @@
 
 import React from 'react';
-import { Helmet } from 'react-helmet-async';
 
 interface SEOProps {
   title?: string;
@@ -19,48 +18,34 @@ const SEO: React.FC<SEOProps> = ({
   url = "https://opportunityhub.com",
   type = "website"
 }) => {
-  return (
-    <Helmet>
-      {/* Basic meta tags */}
-      <title>{title}</title>
-      <meta name="description" content={description} />
-      <meta name="keywords" content={keywords} />
-      
-      {/* Open Graph tags */}
-      <meta property="og:title" content={title} />
-      <meta property="og:description" content={description} />
-      <meta property="og:image" content={image} />
-      <meta property="og:url" content={url} />
-      <meta property="og:type" content={type} />
-      
-      {/* Twitter Card tags */}
-      <meta name="twitter:card" content="summary_large_image" />
-      <meta name="twitter:title" content={title} />
-      <meta name="twitter:description" content={description} />
-      <meta name="twitter:image" content={image} />
-      
-      {/* Additional SEO tags */}
-      <link rel="canonical" href={url} />
-      <meta name="robots" content="index, follow" />
-      <meta name="viewport" content="width=device-width, initial-scale=1" />
-      
-      {/* Structured Data */}
-      <script type="application/ld+json">
-        {JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "WebSite",
-          "name": "OpportunityHub",
-          "description": description,
-          "url": url,
-          "potentialAction": {
-            "@type": "SearchAction",
-            "target": `${url}/opportunities?search={search_term_string}`,
-            "query-input": "required name=search_term_string"
-          }
-        })}
-      </script>
-    </Helmet>
-  );
+  React.useEffect(() => {
+    // Set document title
+    document.title = title;
+    
+    // Set meta description
+    const metaDescription = document.querySelector('meta[name="description"]');
+    if (metaDescription) {
+      metaDescription.setAttribute('content', description);
+    } else {
+      const meta = document.createElement('meta');
+      meta.name = 'description';
+      meta.content = description;
+      document.head.appendChild(meta);
+    }
+
+    // Set meta keywords
+    const metaKeywords = document.querySelector('meta[name="keywords"]');
+    if (metaKeywords) {
+      metaKeywords.setAttribute('content', keywords);
+    } else {
+      const meta = document.createElement('meta');
+      meta.name = 'keywords';
+      meta.content = keywords;
+      document.head.appendChild(meta);
+    }
+  }, [title, description, keywords]);
+
+  return null;
 };
 
 export default SEO;
