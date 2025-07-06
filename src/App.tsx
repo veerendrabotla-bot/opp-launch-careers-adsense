@@ -59,223 +59,230 @@ const queryClient = new QueryClient({
   },
 });
 
-const AppContent = () => {
-  // Initialize Google Analytics - using import.meta.env instead of process.env
+// Component that handles Google Analytics and routing - must be inside Router context
+const RoutesWithAnalytics = () => {
+  // Initialize Google Analytics - now inside Router context
   useGoogleAnalytics(import.meta.env.VITE_GA_MEASUREMENT_ID);
 
   return (
+    <Layout>
+      <Routes>
+        {/* Public Routes */}
+        <Route path="/" element={<Index />} />
+        <Route path="/auth" element={<Auth />} />
+        <Route path="/blog" element={<Blog />} />
+        <Route path="/resume-builder" element={<ResumeBuilder />} />
+        
+        {/* Protected Routes */}
+        <Route 
+          path="/opportunities" 
+          element={
+            <ProtectedRoute requireAuth={false}>
+              <Opportunities />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/scholarships" 
+          element={
+            <ProtectedRoute requireAuth={false}>
+              <Scholarships />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/opportunities/:id" 
+          element={
+            <ProtectedRoute requireAuth={false}>
+              <OpportunityDetail />
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* User Routes */}
+        <Route 
+          path="/dashboard" 
+          element={
+            <ProtectedRoute>
+              <UserDashboard />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/submit" 
+          element={
+            <ProtectedRoute>
+              <Submit />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/profile" 
+          element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/bookmarks" 
+          element={
+            <ProtectedRoute>
+              <Bookmarks />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/notifications" 
+          element={
+            <ProtectedRoute>
+              <Notifications />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/applications" 
+          element={
+            <ProtectedRoute>
+              <Applications />
+            </ProtectedRoute>
+          } 
+        />
+
+        {/* Advertiser Routes */}
+        <Route 
+          path="/advertiser/dashboard" 
+          element={
+            <ProtectedRoute requireAdvertiser>
+              <AdvertiserDashboard />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/advertiser/create-ad" 
+          element={
+            <ProtectedRoute requireAdvertiser>
+              <AdvertiserCreateAd />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/advertiser/ads" 
+          element={
+            <ProtectedRoute requireAdvertiser>
+              <AdvertiserAds />
+            </ProtectedRoute>
+          } 
+        />
+
+        {/* Moderator Routes */}
+        <Route 
+          path="/moderator/dashboard" 
+          element={
+            <ProtectedRoute requireModerator>
+              <ModeratorDashboard />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/moderator/pending" 
+          element={
+            <ProtectedRoute requireModerator>
+              <ModeratorPending />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/moderator/approved" 
+          element={
+            <ProtectedRoute requireModerator>
+              <ModeratorApproved />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/moderator/users" 
+          element={
+            <ProtectedRoute requireModerator>
+              <ModeratorUsers />
+            </ProtectedRoute>
+          } 
+        />
+
+        {/* Admin Routes - Lazy Loaded */}
+        <Route 
+          path="/admin" 
+          element={
+            <ProtectedRoute requireAdmin>
+              <Suspense fallback={<LoadingSpinner text="Loading Admin Dashboard..." />}>
+                <LazyAdminDashboard />
+              </Suspense>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/dashboard" 
+          element={
+            <ProtectedRoute requireAdmin>
+              <Suspense fallback={<LoadingSpinner text="Loading Admin Dashboard..." />}>
+                <LazyAdminDashboard />
+              </Suspense>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/users" 
+          element={
+            <ProtectedRoute requireAdmin>
+              <UserManagement />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/expired" 
+          element={
+            <ProtectedRoute requireAdmin>
+              <AdminExpired />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/notifications" 
+          element={
+            <ProtectedRoute requireAdmin>
+              <AdminNotifications />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/analytics" 
+          element={
+            <ProtectedRoute requireAdmin>
+              <Suspense fallback={<LoadingSpinner text="Loading Analytics..." />}>
+                <LazyAdminAnalytics />
+              </Suspense>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/settings" 
+          element={
+            <ProtectedRoute requireAdmin>
+              <Suspense fallback={<LoadingSpinner text="Loading Settings..." />}>
+                <LazyAdminSettings />
+              </Suspense>
+            </ProtectedRoute>
+          } 
+        />
+      </Routes>
+    </Layout>
+  );
+};
+
+const AppContent = () => {
+  return (
     <Router>
-      <Layout>
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/" element={<Index />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/blog" element={<Blog />} />
-          <Route path="/resume-builder" element={<ResumeBuilder />} />
-          
-          {/* Protected Routes */}
-          <Route 
-            path="/opportunities" 
-            element={
-              <ProtectedRoute requireAuth={false}>
-                <Opportunities />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/scholarships" 
-            element={
-              <ProtectedRoute requireAuth={false}>
-                <Scholarships />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/opportunities/:id" 
-            element={
-              <ProtectedRoute requireAuth={false}>
-                <OpportunityDetail />
-              </ProtectedRoute>
-            } 
-          />
-          
-          {/* User Routes */}
-          <Route 
-            path="/dashboard" 
-            element={
-              <ProtectedRoute>
-                <UserDashboard />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/submit" 
-            element={
-              <ProtectedRoute>
-                <Submit />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/profile" 
-            element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/bookmarks" 
-            element={
-              <ProtectedRoute>
-                <Bookmarks />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/notifications" 
-            element={
-              <ProtectedRoute>
-                <Notifications />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/applications" 
-            element={
-              <ProtectedRoute>
-                <Applications />
-              </ProtectedRoute>
-            } 
-          />
-
-          {/* Advertiser Routes */}
-          <Route 
-            path="/advertiser/dashboard" 
-            element={
-              <ProtectedRoute requireAdvertiser>
-                <AdvertiserDashboard />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/advertiser/create-ad" 
-            element={
-              <ProtectedRoute requireAdvertiser>
-                <AdvertiserCreateAd />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/advertiser/ads" 
-            element={
-              <ProtectedRoute requireAdvertiser>
-                <AdvertiserAds />
-              </ProtectedRoute>
-            } 
-          />
-
-          {/* Moderator Routes */}
-          <Route 
-            path="/moderator/dashboard" 
-            element={
-              <ProtectedRoute requireModerator>
-                <ModeratorDashboard />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/moderator/pending" 
-            element={
-              <ProtectedRoute requireModerator>
-                <ModeratorPending />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/moderator/approved" 
-            element={
-              <ProtectedRoute requireModerator>
-                <ModeratorApproved />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/moderator/users" 
-            element={
-              <ProtectedRoute requireModerator>
-                <ModeratorUsers />
-              </ProtectedRoute>
-            } 
-          />
-
-          {/* Admin Routes - Lazy Loaded */}
-          <Route 
-            path="/admin" 
-            element={
-              <ProtectedRoute requireAdmin>
-                <Suspense fallback={<LoadingSpinner text="Loading Admin Dashboard..." />}>
-                  <LazyAdminDashboard />
-                </Suspense>
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/admin/dashboard" 
-            element={
-              <ProtectedRoute requireAdmin>
-                <Suspense fallback={<LoadingSpinner text="Loading Admin Dashboard..." />}>
-                  <LazyAdminDashboard />
-                </Suspense>
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/admin/users" 
-            element={
-              <ProtectedRoute requireAdmin>
-                <UserManagement />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/admin/expired" 
-            element={
-              <ProtectedRoute requireAdmin>
-                <AdminExpired />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/admin/notifications" 
-            element={
-              <ProtectedRoute requireAdmin>
-                <AdminNotifications />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/admin/analytics" 
-            element={
-              <ProtectedRoute requireAdmin>
-                <Suspense fallback={<LoadingSpinner text="Loading Analytics..." />}>
-                  <LazyAdminAnalytics />
-                </Suspense>
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/admin/settings" 
-            element={
-              <ProtectedRoute requireAdmin>
-                <Suspense fallback={<LoadingSpinner text="Loading Settings..." />}>
-                  <LazyAdminSettings />
-                </Suspense>
-              </ProtectedRoute>
-            } 
-          />
-        </Routes>
-      </Layout>
+      <RoutesWithAnalytics />
     </Router>
   );
 };
