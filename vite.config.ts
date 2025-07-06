@@ -22,7 +22,7 @@ export default defineConfig(({ mode }) => ({
   },
   build: {
     target: 'esnext',
-    minify: 'terser',
+    minify: mode === 'production' ? 'terser' : 'esbuild',
     cssMinify: true,
     rollupOptions: {
       output: {
@@ -36,7 +36,13 @@ export default defineConfig(({ mode }) => ({
       }
     },
     chunkSizeWarningLimit: 1000,
-    sourcemap: false
+    sourcemap: mode === 'development',
+    terserOptions: mode === 'production' ? {
+      compress: {
+        drop_console: true,
+        drop_debugger: true,
+      },
+    } : undefined
   },
   optimizeDeps: {
     include: ['react', 'react-dom', 'react-router-dom', '@supabase/supabase-js']
