@@ -1,8 +1,8 @@
 
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface Props {
   children: ReactNode;
@@ -26,28 +26,21 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('Error caught by boundary:', error, errorInfo);
+    // Log error to console in development
+    console.error('ErrorBoundary caught an error:', error, errorInfo);
     
-    // Log error to monitoring service in production
-    if (process.env.NODE_ENV === 'production') {
-      // Here you would send to your error monitoring service
-      console.error('Production error:', {
-        error: error.message,
-        stack: error.stack,
-        componentStack: errorInfo.componentStack,
-        timestamp: new Date().toISOString(),
-        url: window.location.href,
-        userAgent: navigator.userAgent
-      });
-    }
-
     this.setState({
       error,
       errorInfo
     });
+
+    // In production, you could send this to an error reporting service
+    if (process.env.NODE_ENV === 'production') {
+      // Example: Sentry.captureException(error, { contexts: { errorInfo } });
+    }
   }
 
-  handleReset = () => {
+  handleRetry = () => {
     this.setState({ hasError: false, error: undefined, errorInfo: undefined });
   };
 
@@ -59,7 +52,7 @@ class ErrorBoundary extends Component<Props, State> {
 
       return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-          <Card className="max-w-md w-full">
+          <Card className="max-w-lg w-full">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-red-600">
                 <AlertTriangle className="h-5 w-5" />
@@ -68,30 +61,31 @@ class ErrorBoundary extends Component<Props, State> {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-gray-600">
-                We're sorry, but something unexpected happened. This error has been logged and we'll look into it.
+                We're sorry, but something unexpected happened. Please try refreshing the page.
               </p>
               
               {process.env.NODE_ENV === 'development' && this.state.error && (
-                <div className="p-3 bg-red-50 rounded text-sm text-red-800 font-mono overflow-auto max-h-40">
-                  <strong>Error:</strong> {this.state.error.message}
-                  <br />
-                  <strong>Stack:</strong>
-                  <pre className="whitespace-pre-wrap text-xs mt-1">
-                    {this.state.error.stack}
+                <details className="mt-4">
+                  <summary className="cursor-pointer text-sm font-medium">
+                    Error Details (Development Only)
+                  </summary>
+                  <pre className="mt-2 text-xs bg-gray-100 p-2 rounded overflow-auto">
+                    {this.state.error.toString()}
+                    {this.state.errorInfo?.componentStack}
                   </pre>
-                </div>
+                </details>
               )}
               
               <div className="flex gap-2">
-                <Button onClick={this.handleReset} className="flex items-center gap-2">
+                <Button onClick={this.handleRetry} className="flex items-center gap-2">
                   <RefreshCw className="h-4 w-4" />
                   Try Again
                 </Button>
                 <Button 
                   variant="outline" 
-                  onClick={() => window.location.href = '/'}
+                  onClick={() => window.location.reload()}
                 >
-                  Go Home
+                  Reload Page
                 </Button>
               </div>
             </CardContent>
