@@ -51,13 +51,13 @@ export const useRealtime = (options: UseRealtimeOptions) => {
           console.log(`Realtime update for ${table}:`, payload);
           
           if (payload.eventType === 'INSERT') {
-            setData(prev => [payload.new, ...prev]);
+            setData(prev => [payload.new as any, ...prev]);
           } else if (payload.eventType === 'UPDATE') {
             setData(prev => prev.map(item => 
-              item.id === payload.new.id ? payload.new : item
+              item.id === (payload.new as any).id ? payload.new as any : item
             ));
           } else if (payload.eventType === 'DELETE') {
-            setData(prev => prev.filter(item => item.id !== payload.old.id));
+            setData(prev => prev.filter(item => item.id !== (payload.old as any).id));
           }
         }
       )
