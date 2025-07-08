@@ -37,7 +37,10 @@ interface SearchFilters {
 interface SavedSearch {
   id: string;
   name: string;
-  search_criteria: any;
+  search_criteria: {
+    query?: string;
+    filters?: SearchFilters;
+  };
   notification_enabled: boolean;
 }
 
@@ -56,7 +59,6 @@ const AdvancedSearch: React.FC = () => {
   const [opportunities, setOpportunities] = useState<any[]>([]);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
   const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([]);
   const [saveSearchName, setSaveSearchName] = useState('');
   const [showSaveDialog, setShowSaveDialog] = useState(false);
@@ -197,19 +199,23 @@ const AdvancedSearch: React.FC = () => {
       if (error) throw error;
       setOpportunities(data || []);
       
-      // Track search analytics
+      // Track search analytics - simplified version
       if (user && (debouncedQuery || Object.values(debouncedFilters).some(v => 
         Array.isArray(v) ? v.length > 0 : v === true || v !== 'all'
       ))) {
-        await supabase.from('analytics').insert([{
-          user_id: user.id,
-          event_type: 'search',
-          metadata: {
-            query: debouncedQuery,
-            filters: debouncedFilters,
-            results_count: data?.length || 0
-          }
-        }]);
+        try {
+          await supabase.from('analytics').insert({
+            user_id: user.id,
+            event_type: 'search',
+            metadata: {
+              query: debouncedQuery,
+              filters: JSON.stringify(debouncedFilters),
+              results_count: data?.length || 0
+            } as any
+          });
+        } catch (analyticsError) {
+          console.error('Error tracking search analytics:', analyticsError);
+        }
       }
       
     } catch (error) {
@@ -223,15 +229,15 @@ const AdvancedSearch: React.FC = () => {
     if (!user || !saveSearchName.trim()) return;
     
     try {
-      await supabase.from('saved_searches').insert([{
+      await supabase.from('saved_searches').insert({
         user_id: user.id,
         name: saveSearchName.trim(),
         search_criteria: {
           query,
           filters
-        },
+        } as any,
         notification_enabled: true
-      }]);
+      });
       
       setSaveSearchName('');
       setShowSaveDialog(false);
@@ -291,10 +297,10 @@ const AdvancedSearch: React.FC = () => {
     if (!user) return;
     
     try {
-      await supabase.from('bookmarks').insert([{
+      await supabase.from('bookmarks').insert({
         user_id: user.id,
         opportunity_id: opportunityId
-      }]);
+      });
     } catch (error) {
       console.error('Error bookmarking:', error);
     }
@@ -304,11 +310,11 @@ const AdvancedSearch: React.FC = () => {
     if (!user) return;
     
     try {
-      await supabase.from('applications').insert([{
+      await supabase.from('applications').insert({
         user_id: user.id,
         opportunity_id: opportunityId,
         status: 'pending'
-      }]);
+      });
     } catch (error) {
       console.error('Error applying:', error);
     }

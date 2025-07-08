@@ -24,16 +24,18 @@ export const useChat = (roomId?: string, receiverId?: string) => {
     if (!user || !content.trim()) return;
 
     try {
+      // Since the messages table doesn't exist in the current schema,
+      // we'll use a workaround with notifications for now
       const messageData = {
-        sender_id: user.id,
-        content: content.trim(),
-        message_type: roomId ? 'room' : 'direct',
-        ...(roomId && { room_id: roomId }),
-        ...(receiverId && { receiver_id: receiverId }),
+        user_id: user.id,
+        title: roomId ? `Message in ${roomId}` : 'Direct Message',
+        message: content.trim(),
+        type: 'message',
+        action_url: roomId ? `/chat/${roomId}` : `/chat/direct/${receiverId}`
       };
 
       const { error } = await supabase
-        .from('messages')
+        .from('notifications')
         .insert([messageData]);
 
       if (error) throw error;
@@ -45,10 +47,9 @@ export const useChat = (roomId?: string, receiverId?: string) => {
   const markAsRead = async (messageId: string) => {
     try {
       await supabase
-        .from('messages')
+        .from('notifications')
         .update({ is_read: true })
-        .eq('id', messageId)
-        .eq('receiver_id', user?.id);
+        .eq('id', messageId);
     } catch (error) {
       console.error('Error marking message as read:', error);
     }
@@ -59,21 +60,35 @@ export const useChat = (roomId?: string, receiverId?: string) => {
 
     const fetchMessages = async () => {
       try {
+        // Fetch notifications as messages for now
         let query = supabase
-          .from('messages')
+          .from('notifications')
           .select('*')
+          .eq('type', 'message')
           .order('created_at', { ascending: true });
 
         if (roomId) {
-          query = query.eq('room_id', roomId);
+          query = query.ilike('action_url', `%${roomId}%`);
         } else if (receiverId) {
-          query = query.or(`and(sender_id.eq.${user.id},receiver_id.eq.${receiverId}),and(sender_id.eq.${receiverId},receiver_id.eq.${user.id})`);
-        } else {
-          query = query.or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`);
+          query = query.or(`user_id.eq.${user.id},user_id.eq.${receiverId}`);
         }
 
         const { data } = await query;
-        setMessages(data || []);
+        
+        // Transform notifications to message format
+        const transformedMessages = (data || []).map(notification => ({
+          id: notification.id,
+          sender_id: notification.user_id || '',
+          receiver_id: receiverId,
+          content: notification.message,
+          message_type: (roomId ? 'room' : 'direct') as 'direct' | 'room',
+          room_id: roomId,
+          is_read: notification.is_read || false,
+          created_at: notification.created_at,
+          updated_at: notification.created_at
+        }));
+        
+        setMessages(transformedMessages);
       } catch (error) {
         console.error('Error fetching messages:', error);
       } finally {
@@ -83,24 +98,35 @@ export const useChat = (roomId?: string, receiverId?: string) => {
 
     fetchMessages();
 
-    // Set up real-time subscription
+    // Set up real-time subscription for notifications
     const channel = supabase
-      .channel('messages-realtime')
+      .channel('notifications-realtime')
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'messages',
+          table: 'notifications',
+          filter: `type=eq.message`
         },
         (payload) => {
-          const newMessage = payload.new as Message;
-          
+          const newNotification = payload.new as any;
+          const newMessage: Message = {
+            id: newNotification.id,
+            sender_id: newNotification.user_id || '',
+            receiver_id: receiverId,
+            content: newNotification.message,
+            message_type: (roomId ? 'room' : 'direct') as 'direct' | 'room',
+            room_id: roomId,
+            is_read: false,
+            created_at: newNotification.created_at,
+            updated_at: newNotification.created_at
+          };
+
           // Only add message if it belongs to current conversation
           const belongsToConversation = roomId 
-            ? newMessage.room_id === roomId
-            : (newMessage.sender_id === user.id && newMessage.receiver_id === receiverId) ||
-              (newMessage.sender_id === receiverId && newMessage.receiver_id === user.id);
+            ? newNotification.action_url?.includes(roomId)
+            : newNotification.user_id === user.id || newNotification.user_id === receiverId;
 
           if (belongsToConversation) {
             setMessages(prev => [...prev, newMessage]);
