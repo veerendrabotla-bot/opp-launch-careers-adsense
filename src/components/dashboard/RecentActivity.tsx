@@ -6,7 +6,7 @@ import { TrendingUp, Send, BookmarkIcon, Eye } from 'lucide-react';
 
 interface ActivityItem {
   id: string;
-  type: 'application' | 'bookmark' | 'view';
+  type: 'application' | 'bookmark' | 'view' | 'opportunity_view';
   title: string;
   date: string;
   status: string;
@@ -25,6 +25,7 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ activities }) => {
       case 'bookmark':
         return <BookmarkIcon className="h-4 w-4 text-blue-600" />;
       case 'view':
+      case 'opportunity_view':
         return <Eye className="h-4 w-4 text-blue-600" />;
       default:
         return <TrendingUp className="h-4 w-4 text-blue-600" />;
