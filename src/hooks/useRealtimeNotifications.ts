@@ -56,8 +56,10 @@ export const useRealtimeNotifications = () => {
         (payload) => {
           const newNotification = payload.new as RealtimeNotification;
           
-          // Only show notifications for this user or global notifications
-          if (newNotification.user_id === user.id || !newNotification.user_id) {
+          // Check if notification is for this user or global
+          const isForUser = !newNotification.user_id || newNotification.user_id === user.id;
+          
+          if (isForUser) {
             setNotifications(prev => [newNotification, ...prev.slice(0, 49)]);
             setUnreadCount(prev => prev + 1);
             

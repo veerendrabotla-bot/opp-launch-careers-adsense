@@ -19,10 +19,16 @@ export const useUserPresence = () => {
     if (!user) return;
 
     try {
-      await supabase.rpc('update_user_presence', {
-        _status: status,
-        _current_page: currentPage || window.location.pathname,
-        _metadata: { browser: navigator.userAgent }
+      // Use analytics table to track presence since user_presence table doesn't exist
+      await supabase.from('analytics').insert({
+        user_id: user.id,
+        event_type: 'user_presence',
+        metadata: {
+          status: status,
+          current_page: currentPage || window.location.pathname,
+          browser: navigator.userAgent,
+          timestamp: new Date().toISOString()
+        }
       });
     } catch (error) {
       console.error('Error updating presence:', error);
@@ -49,7 +55,7 @@ export const useUserPresence = () => {
       updatePresence('offline');
     };
 
-    // Set up real-time presence subscription
+    // Set up real-time presence subscription using analytics table
     const channel = supabase
       .channel('user-presence')
       .on(
@@ -57,16 +63,28 @@ export const useUserPresence = () => {
         {
           event: '*',
           schema: 'public',
-          table: 'user_presence',
+          table: 'analytics',
         },
-        async () => {
-          // Fetch updated presence data
+        async (payload) => {
+          // Fetch updated presence data from analytics
           const { data } = await supabase
-            .from('user_presence')
+            .from('analytics')
             .select('*')
-            .gte('last_seen', new Date(Date.now() - 5 * 60 * 1000).toISOString());
+            .eq('event_type', 'user_presence')
+            .gte('created_at', new Date(Date.now() - 5 * 60 * 1000).toISOString());
           
-          setOnlineUsers(data || []);
+          // Transform analytics data to presence format
+          const presenceData: UserPresence[] = (data || [])
+            .filter(item => item.metadata && typeof item.metadata === 'object')
+            .map(item => ({
+              user_id: item.user_id || '',
+              status: (item.metadata as any)?.status || 'offline',
+              last_seen: item.created_at,
+              current_page: (item.metadata as any)?.current_page,
+              metadata: item.metadata
+            }));
+          
+          setOnlineUsers(presenceData);
         }
       )
       .subscribe();

@@ -39,16 +39,19 @@ export const useFileUpload = (options: FileUploadOptions) => {
       const fileName = `${user.id}/${Date.now()}.${fileExt}`;
       const filePath = options.folder ? `${options.folder}/${fileName}` : fileName;
 
-      // Record file upload in database
+      // Use analytics table to track file uploads since file_uploads table doesn't exist
       const { data: uploadRecord } = await supabase
-        .from('file_uploads')
+        .from('analytics')
         .insert([{
           user_id: user.id,
-          file_name: file.name,
-          file_path: filePath,
-          file_size: file.size,
-          file_type: file.type,
-          upload_status: 'uploading'
+          event_type: 'file_upload',
+          metadata: {
+            file_name: file.name,
+            file_path: filePath,
+            file_size: file.size,
+            file_type: file.type,
+            upload_status: 'uploading'
+          }
         }])
         .select()
         .single();
@@ -64,10 +67,17 @@ export const useFileUpload = (options: FileUploadOptions) => {
       if (error) throw error;
 
       // Update upload status
-      await supabase
-        .from('file_uploads')
-        .update({ upload_status: 'completed' })
-        .eq('id', uploadRecord?.id);
+      if (uploadRecord) {
+        await supabase
+          .from('analytics')
+          .update({ 
+            metadata: {
+              ...(uploadRecord.metadata as any),
+              upload_status: 'completed'
+            }
+          })
+          .eq('id', uploadRecord.id);
+      }
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage

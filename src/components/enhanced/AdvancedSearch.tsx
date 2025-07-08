@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -99,7 +98,18 @@ const AdvancedSearch: React.FC = () => {
         .eq('user_id', user?.id)
         .order('created_at', { ascending: false });
       
-      setSavedSearches(data || []);
+      if (data) {
+        // Type cast the data to match our interface
+        const typedSavedSearches: SavedSearch[] = data.map(item => ({
+          id: item.id,
+          name: item.name,
+          search_criteria: typeof item.search_criteria === 'object' && item.search_criteria !== null 
+            ? item.search_criteria as { query?: string; filters?: SearchFilters }
+            : { query: '', filters: filters },
+          notification_enabled: item.notification_enabled || false
+        }));
+        setSavedSearches(typedSavedSearches);
+      }
     } catch (error) {
       console.error('Error loading saved searches:', error);
     }
@@ -199,7 +209,7 @@ const AdvancedSearch: React.FC = () => {
       if (error) throw error;
       setOpportunities(data || []);
       
-      // Track search analytics - simplified version
+      // Track search analytics
       if (user && (debouncedQuery || Object.values(debouncedFilters).some(v => 
         Array.isArray(v) ? v.length > 0 : v === true || v !== 'all'
       ))) {
@@ -211,7 +221,7 @@ const AdvancedSearch: React.FC = () => {
               query: debouncedQuery,
               filters: JSON.stringify(debouncedFilters),
               results_count: data?.length || 0
-            } as any
+            }
           });
         } catch (analyticsError) {
           console.error('Error tracking search analytics:', analyticsError);
@@ -235,7 +245,7 @@ const AdvancedSearch: React.FC = () => {
         search_criteria: {
           query,
           filters
-        } as any,
+        },
         notification_enabled: true
       });
       

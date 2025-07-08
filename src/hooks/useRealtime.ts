@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface UseRealtimeOptions {
-  table: string;
+  table: 'opportunities' | 'applications' | 'notifications' | 'bookmarks' | 'analytics';
   event?: 'INSERT' | 'UPDATE' | 'DELETE' | '*';
   filter?: string;
 }
@@ -21,10 +21,11 @@ export const useRealtime = <T>({ table, event = '*', filter }: UseRealtimeOption
       try {
         let query = supabase.from(table).select('*');
         if (filter) {
-          query = query.eq(filter.split('=')[0], filter.split('=')[1]);
+          const [field, value] = filter.split('=');
+          query = query.eq(field, value);
         }
         const { data: initialData } = await query;
-        setData(initialData || []);
+        setData((initialData || []) as T[]);
       } catch (error) {
         console.error(`Error fetching ${table}:`, error);
       } finally {
