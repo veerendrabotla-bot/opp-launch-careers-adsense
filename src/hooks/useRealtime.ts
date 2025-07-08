@@ -9,8 +9,13 @@ interface UseRealtimeOptions {
   filter?: string;
 }
 
+interface RealtimeData {
+  id: string;
+  [key: string]: any;
+}
+
 export const useRealtime = (options: UseRealtimeOptions) => {
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<RealtimeData[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
@@ -56,11 +61,11 @@ export const useRealtime = (options: UseRealtimeOptions) => {
           if (payload.eventType === 'INSERT') {
             setData(prev => [payload.new, ...prev]);
           } else if (payload.eventType === 'UPDATE') {
-            setData(prev => prev.map((item: any) => 
+            setData(prev => prev.map((item: RealtimeData) => 
               item.id === payload.new.id ? payload.new : item
             ));
           } else if (payload.eventType === 'DELETE') {
-            setData(prev => prev.filter((item: any) => item.id !== payload.old.id));
+            setData(prev => prev.filter((item: RealtimeData) => item.id !== payload.old.id));
           }
         }
       )
