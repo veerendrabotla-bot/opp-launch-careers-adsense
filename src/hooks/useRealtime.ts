@@ -26,13 +26,19 @@ export const useRealtime = (options: UseRealtimeOptions) => {
 
     const fetchInitialData = async () => {
       try {
-        let query = supabase.from(table).select('*');
+        // Simplify the query to avoid deep type instantiation
+        const query = supabase.from(table as any).select('*');
         if (filter) {
           const [field, value] = filter.split('=');
-          query = query.eq(field, value);
+          query.eq(field, value);
         }
-        const { data: initialData } = await query;
-        setData(initialData || []);
+        const { data: initialData, error } = await query;
+        
+        if (error) {
+          console.error(`Error fetching ${table}:`, error);
+        } else {
+          setData((initialData as RealtimeData[]) || []);
+        }
       } catch (error) {
         console.error(`Error fetching ${table}:`, error);
       } finally {
