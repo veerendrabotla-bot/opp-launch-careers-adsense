@@ -7,16 +7,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { Database } from '@/integrations/supabase/types';
 
-interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  type: 'info' | 'success' | 'warning' | 'error';
-  action_url?: string;
-  is_read: boolean;
-  created_at: string;
-}
+type Notification = Database['public']['Tables']['notifications']['Row'];
 
 const NotificationSystem = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
