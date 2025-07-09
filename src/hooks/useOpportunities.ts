@@ -25,8 +25,8 @@ export const useOpportunities = (filters?: {
   const fetchingRef = useRef(false);
   const lastFiltersRef = useRef<string>('');
 
-  const fetchOpportunities = useCallback(async () => {
-    if (fetchingRef.current) return;
+  const fetchOpportunities = useCallback(async (force = false) => {
+    if (fetchingRef.current && !force) return;
     
     try {
       fetchingRef.current = true;
@@ -114,7 +114,7 @@ export const useOpportunities = (filters?: {
       
       const timeoutId = setTimeout(() => {
         if (!fetchingRef.current) {
-          fetchOpportunities();
+          fetchOpportunities(true);
         }
       }, 300);
 
@@ -133,14 +133,15 @@ export const useOpportunities = (filters?: {
     };
   }, []);
 
-  // Real-time subscription
+  // Real-time subscription with unique channel name
   useEffect(() => {
     if (!initialized || subscriptionRef.current) return;
 
-    console.log('Setting up real-time subscription for opportunities');
+    const channelName = `opportunities-changes-${Date.now()}-${Math.random()}`;
+    console.log('Setting up real-time subscription for opportunities:', channelName);
     
     const channel = supabase
-      .channel('opportunities-changes')
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -150,9 +151,10 @@ export const useOpportunities = (filters?: {
         },
         (payload) => {
           console.log('Opportunities table changed:', payload);
+          // Force refresh to get updated data
           setTimeout(() => {
             if (!fetchingRef.current) {
-              fetchOpportunities();
+              fetchOpportunities(true);
             }
           }, 1000);
         }
@@ -166,6 +168,6 @@ export const useOpportunities = (filters?: {
     opportunities, 
     loading: loading && !initialized, 
     error, 
-    refetch: fetchOpportunities 
+    refetch: () => fetchOpportunities(true)
   };
 };

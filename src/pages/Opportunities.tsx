@@ -5,7 +5,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useOpportunities } from '@/hooks/useOpportunities';
-import BackButton from '@/components/BackButton';
 import { Link } from 'react-router-dom';
 import { 
   Search, 
@@ -15,15 +14,17 @@ import {
   ExternalLink,
   Bookmark,
   Filter,
-  Loader2
+  Loader2,
+  RefreshCw
 } from 'lucide-react';
 
 const Opportunities = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('All');
   const [locationFilter, setLocationFilter] = useState('All');
+  const [showFilters, setShowFilters] = useState(false);
   
-  const { opportunities, loading } = useOpportunities({
+  const { opportunities, loading, refetch } = useOpportunities({
     type: typeFilter !== 'All' ? typeFilter : undefined,
     search: searchTerm,
     location: locationFilter !== 'All' ? locationFilter : undefined
@@ -42,7 +43,7 @@ const Opportunities = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
+        <div className="text-center animate-fade-in">
           <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
           <p className="text-gray-600">Loading opportunities...</p>
         </div>
@@ -53,56 +54,82 @@ const Opportunities = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex items-center gap-4 mb-6">
-            <BackButton to="/" />
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">All Opportunities</h1>
-              <p className="text-gray-600 mt-2">Discover internships, contests, events, and scholarships</p>
-            </div>
-          </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
+          <div className="animate-fade-in">
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">All Opportunities</h1>
+            <p className="text-gray-600 mb-6">Discover internships, contests, events, and scholarships</p>
 
-          {/* Search and Filters */}
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                placeholder="Search opportunities..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
+            {/* Search and Filters */}
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Input
+                    placeholder="Search opportunities..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 h-12"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowFilters(!showFilters)}
+                    className="h-12 px-4"
+                  >
+                    <Filter className="h-4 w-4 mr-2" />
+                    Filters
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={refetch}
+                    className="h-12 px-4"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Expandable Filters */}
+              <div className={`transition-all duration-300 ${
+                showFilters 
+                  ? 'max-h-40 opacity-100 animate-scale-in' 
+                  : 'max-h-0 opacity-0 overflow-hidden'
+              }`}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
+                  <select
+                    value={typeFilter}
+                    onChange={(e) => setTypeFilter(e.target.value)}
+                    className="px-3 py-2 border border-gray-300 rounded-md bg-white h-10"
+                  >
+                    <option value="All">All Types</option>
+                    <option value="Internship">Internships</option>
+                    <option value="Contest">Contests</option>
+                    <option value="Event">Events</option>
+                    <option value="Scholarship">Scholarships</option>
+                  </select>
+                  <select
+                    value={locationFilter}
+                    onChange={(e) => setLocationFilter(e.target.value)}
+                    className="px-3 py-2 border border-gray-300 rounded-md bg-white h-10"
+                  >
+                    <option value="All">All Locations</option>
+                    <option value="India">India</option>
+                    <option value="USA">USA</option>
+                    <option value="UK">UK</option>
+                    <option value="Canada">Canada</option>
+                    <option value="Remote">Remote</option>
+                  </select>
+                </div>
+              </div>
             </div>
-            <select
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-md bg-white"
-            >
-              <option value="All">All Types</option>
-              <option value="Internship">Internships</option>
-              <option value="Contest">Contests</option>
-              <option value="Event">Events</option>
-              <option value="Scholarship">Scholarships</option>
-            </select>
-            <select
-              value={locationFilter}
-              onChange={(e) => setLocationFilter(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-md bg-white"
-            >
-              <option value="All">All Locations</option>
-              <option value="India">India</option>
-              <option value="USA">USA</option>
-              <option value="UK">UK</option>
-              <option value="Canada">Canada</option>
-              <option value="Remote">Remote</option>
-            </select>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
         {opportunities.length === 0 ? (
-          <Card>
+          <Card className="animate-fade-in">
             <CardContent className="pt-6 text-center">
               <Search className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h2 className="text-xl font-semibold mb-2">No opportunities found</h2>
@@ -115,13 +142,17 @@ const Opportunities = () => {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {opportunities.map(opportunity => (
-              <Card key={opportunity.id} className="hover:shadow-lg transition-shadow">
-                <CardHeader>
+          <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+            {opportunities.map((opportunity, index) => (
+              <Card 
+                key={opportunity.id} 
+                className="hover:shadow-lg transition-all duration-300 hover:scale-105 animate-fade-in card-hover"
+                style={{ animationDelay: `${index * 50}ms` }}
+              >
+                <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
                         <Badge className={getTypeColor(opportunity.type)}>
                           {opportunity.type}
                         </Badge>
@@ -130,8 +161,11 @@ const Opportunities = () => {
                             Featured
                           </Badge>
                         )}
+                        {opportunity.remote_work_allowed && (
+                          <Badge variant="secondary">Remote</Badge>
+                        )}
                       </div>
-                      <CardTitle className="text-lg leading-tight">
+                      <CardTitle className="text-lg leading-tight line-clamp-2">
                         <Link 
                           to={`/opportunities/${opportunity.id}`}
                           className="hover:text-blue-600 transition-colors"
@@ -140,7 +174,7 @@ const Opportunities = () => {
                         </Link>
                       </CardTitle>
                     </div>
-                    <Button variant="ghost" size="sm">
+                    <Button variant="ghost" size="sm" className="flex-shrink-0">
                       <Bookmark className="h-4 w-4" />
                     </Button>
                   </div>
@@ -153,19 +187,19 @@ const Opportunities = () => {
                   <div className="space-y-2 mb-4">
                     {opportunity.company && (
                       <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Building className="h-4 w-4" />
-                        {opportunity.company}
+                        <Building className="h-4 w-4 flex-shrink-0" />
+                        <span className="truncate">{opportunity.company}</span>
                       </div>
                     )}
                     {opportunity.location && (
                       <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <MapPin className="h-4 w-4" />
-                        {opportunity.location}
+                        <MapPin className="h-4 w-4 flex-shrink-0" />
+                        <span className="truncate">{opportunity.location}</span>
                       </div>
                     )}
                     <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Calendar className="h-4 w-4" />
-                      Deadline: {new Date(opportunity.deadline).toLocaleDateString()}
+                      <Calendar className="h-4 w-4 flex-shrink-0" />
+                      <span>Deadline: {new Date(opportunity.deadline).toLocaleDateString()}</span>
                     </div>
                   </div>
 
@@ -185,7 +219,7 @@ const Opportunities = () => {
                   )}
 
                   <div className="flex items-center justify-between pt-4 border-t">
-                    <span className="text-sm text-gray-500">
+                    <span className="text-sm text-gray-500 truncate">
                       {opportunity.domain}
                     </span>
                     <a 
@@ -193,7 +227,7 @@ const Opportunities = () => {
                       target="_blank" 
                       rel="noopener noreferrer"
                     >
-                      <Button size="sm">
+                      <Button size="sm" className="button-hover">
                         Apply Now
                         <ExternalLink className="h-4 w-4 ml-2" />
                       </Button>

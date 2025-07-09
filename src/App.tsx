@@ -10,18 +10,10 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import ChatWidget from "@/components/chat/ChatWidget";
 import ProductionDataLoader from "@/components/ProductionDataLoader";
-import Home from "./pages/Home";
-import Opportunities from "./pages/Opportunities";
-import Scholarships from "./pages/Scholarships";
-import Dashboard from "./pages/Dashboard";
-import Profile from "./pages/Profile";
-import Bookmarks from "./pages/Bookmarks";
-import Applications from "./pages/Applications";
-import AdminDashboard from "./pages/AdminDashboard";
-import AdminAnalytics from "./pages/AdminAnalytics";
-import ModeratorDashboard from "./pages/ModeratorDashboard";
+import ResponsiveNavigation from "@/components/ResponsiveNavigation";
 
 // Lazy loading components
+const Index = lazy(() => import("@/pages/Index"));
 const OpportunitiesPage = lazy(() => import("@/pages/Opportunities"));
 const ScholarshipPage = lazy(() => import("@/pages/Scholarships"));
 const AuthenticationPage = lazy(() => import("@/pages/Auth"));
@@ -29,12 +21,14 @@ const DashboardPage = lazy(() => import("@/pages/Dashboard"));
 const ProfilePage = lazy(() => import("@/pages/Profile"));
 const BookmarksPage = lazy(() => import("@/pages/Bookmarks"));
 const ApplicationsPage = lazy(() => import("@/pages/Applications"));
+const SubmitPage = lazy(() => import("@/pages/Submit"));
 const AdminDashboardPage = lazy(() => import("@/pages/AdminDashboard"));
 const AdminAnalyticsPage = lazy(() => import("@/pages/AdminAnalytics"));
 const ModeratorDashboardPage = lazy(() => import("@/pages/ModeratorDashboard"));
 const PendingOpportunitiesPage = lazy(() => import("@/pages/ModeratorPending"));
 const ApprovedOpportunitiesPage = lazy(() => import("@/pages/ModeratorApproved"));
 const UsersPage = lazy(() => import("@/pages/ModeratorUsers"));
+const AdminPage = lazy(() => import("@/pages/Admin"));
 
 // New enhanced components
 const EnhancedResumeBuilder = lazy(() => import("@/components/enhanced/ResumeBuilder"));
@@ -51,34 +45,39 @@ const App = () => {
             <Toaster />
             <Sonner />
             <BrowserRouter>
-              <Suspense fallback={<LoadingSpinner />}>
-                <Routes>
-                  <Route path="/" element={<Home />} />
-                  <Route path="/opportunities" element={<Opportunities />} />
-                  <Route path="/scholarships" element={<Scholarships />} />
-                  <Route path="/auth" element={<AuthenticationPage />} />
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/profile" element={<Profile />} />
-                  <Route path="/bookmarks" element={<Bookmarks />} />
-                  <Route path="/applications" element={<Applications />} />
-                  <Route path="/admin/dashboard" element={<AdminDashboard />} />
-                  <Route path="/admin/analytics" element={<AdminAnalytics />} />
-                  <Route path="/moderator/dashboard" element={<ModeratorDashboard />} />
-                  <Route path="/moderator/pending" element={<PendingOpportunitiesPage />} />
-                  <Route path="/moderator/approved" element={<ApprovedOpportunitiesPage />} />
-                  <Route path="/moderator/users" element={<UsersPage />} />
-                  
-                  {/* Enhanced Routes */}
-                  <Route path="/resume-builder-pro" element={<EnhancedResumeBuilder />} />
-                  <Route path="/advanced-search" element={<AdvancedSearch />} />
-                  
-                  <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
+              <div className="min-h-screen bg-gray-50">
+                <ResponsiveNavigation />
+                <Suspense fallback={<LoadingSpinner />}>
+                  <Routes>
+                    <Route path="/" element={<Index />} />
+                    <Route path="/opportunities" element={<OpportunitiesPage />} />
+                    <Route path="/scholarships" element={<ScholarshipPage />} />
+                    <Route path="/auth" element={<AuthenticationPage />} />
+                    <Route path="/submit" element={<SubmitPage />} />
+                    <Route path="/dashboard" element={<DashboardPage />} />
+                    <Route path="/profile" element={<ProfilePage />} />
+                    <Route path="/bookmarks" element={<BookmarksPage />} />
+                    <Route path="/applications" element={<ApplicationsPage />} />
+                    <Route path="/admin" element={<AdminPage />} />
+                    <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+                    <Route path="/admin/analytics" element={<AdminAnalyticsPage />} />
+                    <Route path="/moderator/dashboard" element={<ModeratorDashboardPage />} />
+                    <Route path="/moderator/pending" element={<PendingOpportunitiesPage />} />
+                    <Route path="/moderator/approved" element={<ApprovedOpportunitiesPage />} />
+                    <Route path="/moderator/users" element={<UsersPage />} />
+                    
+                    {/* Enhanced Routes */}
+                    <Route path="/resume-builder-pro" element={<EnhancedResumeBuilder />} />
+                    <Route path="/advanced-search" element={<AdvancedSearch />} />
+                    
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                  </Routes>
+                </Suspense>
                 
                 {/* Global Components */}
                 <ChatWidget roomId="global" title="Community Chat" />
                 <ProductionDataLoader />
-              </Suspense>
+              </div>
             </BrowserRouter>
           </AuthProvider>
         </TooltipProvider>
