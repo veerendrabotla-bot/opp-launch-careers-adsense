@@ -10,7 +10,6 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import ChatWidget from "@/components/chat/ChatWidget";
 import ProductionDataLoader from "@/components/ProductionDataLoader";
-import ResponsiveNavigation from "@/components/ResponsiveNavigation";
 
 const Index = lazy(() => import("@/pages/Index"));
 const OpportunitiesPage = lazy(() => import("@/pages/Opportunities"));
@@ -43,8 +42,7 @@ const App = () => {
             <Toaster />
             <Sonner />
             <BrowserRouter>
-              <div className="min-h-screen bg-gray-50">
-                <ResponsiveNavigation />
+              <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
                 <Suspense fallback={<LoadingSpinner />}>
                   <Routes>
                     <Route path="/" element={<Index />} />
