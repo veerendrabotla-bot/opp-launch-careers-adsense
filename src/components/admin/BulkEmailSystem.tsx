@@ -22,12 +22,14 @@ import {
   Calendar
 } from 'lucide-react';
 
+type UserRole = 'user' | 'admin' | 'moderator' | 'advertiser';
+
 interface EmailNotification {
   id: string;
   subject: string;
   content: string;
   recipient_type: string;
-  target_roles: string[];
+  target_roles: UserRole[];
   status: string;
   sent_count: number;
   total_recipients: number;
@@ -43,7 +45,7 @@ const BulkEmailSystem: React.FC = () => {
     subject: '',
     content: '',
     recipient_type: 'all',
-    target_roles: [] as string[]
+    target_roles: [] as UserRole[]
   });
   const { toast } = useToast();
 
@@ -127,6 +129,20 @@ const BulkEmailSystem: React.FC = () => {
     }
   };
 
+  const handleRoleToggle = (role: UserRole, checked: boolean) => {
+    if (checked) {
+      setNewEmail(prev => ({ 
+        ...prev, 
+        target_roles: [...prev.target_roles, role] 
+      }));
+    } else {
+      setNewEmail(prev => ({ 
+        ...prev, 
+        target_roles: prev.target_roles.filter(r => r !== role) 
+      }));
+    }
+  };
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'sent':
@@ -154,6 +170,8 @@ const BulkEmailSystem: React.FC = () => {
       </Badge>
     );
   };
+
+  const availableRoles: UserRole[] = ['user', 'moderator', 'admin', 'advertiser'];
 
   return (
     <div className="space-y-6">
@@ -210,24 +228,12 @@ const BulkEmailSystem: React.FC = () => {
             <div>
               <Label>Target Roles</Label>
               <div className="grid grid-cols-2 gap-2 mt-2">
-                {['user', 'moderator', 'admin', 'advertiser'].map(role => (
+                {availableRoles.map(role => (
                   <label key={role} className="flex items-center space-x-2">
                     <input
                       type="checkbox"
                       checked={newEmail.target_roles.includes(role)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setNewEmail(prev => ({ 
-                            ...prev, 
-                            target_roles: [...prev.target_roles, role] 
-                          }));
-                        } else {
-                          setNewEmail(prev => ({ 
-                            ...prev, 
-                            target_roles: prev.target_roles.filter(r => r !== role) 
-                          }));
-                        }
-                      }}
+                      onChange={(e) => handleRoleToggle(role, e.target.checked)}
                       disabled={sending}
                     />
                     <span className="capitalize">{role}</span>

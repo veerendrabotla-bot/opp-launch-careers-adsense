@@ -9,6 +9,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Shield, Eye, EyeOff, Loader2 } from 'lucide-react';
 
+interface AdminRegistrationResponse {
+  success: boolean;
+  error?: string;
+  message?: string;
+}
+
 const SecureAdminRegistration: React.FC = () => {
   const [formData, setFormData] = useState({
     name: '',
@@ -60,8 +66,11 @@ const SecureAdminRegistration: React.FC = () => {
 
       if (validationError) throw validationError;
       
-      if (!validationResult.success) {
-        setError(validationResult.error || 'Invalid access code');
+      // Type cast the response to our expected interface
+      const response = validationResult as AdminRegistrationResponse;
+      
+      if (!response.success) {
+        setError(response.error || 'Invalid access code');
         setLoading(false);
         return;
       }
