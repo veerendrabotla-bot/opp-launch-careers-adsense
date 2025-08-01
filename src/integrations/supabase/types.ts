@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instanciate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "12.2.3 (519615d)"
+    PostgrestVersion: "12.2.12 (cd3cf9e)"
   }
   public: {
     Tables: {
@@ -317,6 +317,57 @@ export type Database = {
           status?: string
           subject?: string
           title?: string
+        }
+        Relationships: []
+      }
+      email_notifications: {
+        Row: {
+          content: string
+          created_at: string | null
+          created_by: string
+          id: string
+          recipient_type: string
+          scheduled_at: string | null
+          sent_at: string | null
+          sent_count: number | null
+          status: string
+          subject: string
+          target_roles: Database["public"]["Enums"]["app_role"][] | null
+          target_users: string[] | null
+          total_recipients: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          created_by: string
+          id?: string
+          recipient_type?: string
+          scheduled_at?: string | null
+          sent_at?: string | null
+          sent_count?: number | null
+          status?: string
+          subject: string
+          target_roles?: Database["public"]["Enums"]["app_role"][] | null
+          target_users?: string[] | null
+          total_recipients?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          created_by?: string
+          id?: string
+          recipient_type?: string
+          scheduled_at?: string | null
+          sent_at?: string | null
+          sent_count?: number | null
+          status?: string
+          subject?: string
+          target_roles?: Database["public"]["Enums"]["app_role"][] | null
+          target_users?: string[] | null
+          total_recipients?: number | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -783,6 +834,39 @@ export type Database = {
         }
         Relationships: []
       }
+      security_audit_log: {
+        Row: {
+          created_at: string | null
+          details: Json | null
+          event_type: string
+          id: string
+          ip_address: unknown | null
+          severity: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          details?: Json | null
+          event_type: string
+          id?: string
+          ip_address?: unknown | null
+          severity?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          details?: Json | null
+          event_type?: string
+          id?: string
+          ip_address?: unknown | null
+          severity?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           assigned_at: string
@@ -812,6 +896,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      assign_role_secure: {
+        Args: {
+          _target_user_id: string
+          _role: Database["public"]["Enums"]["app_role"]
+        }
+        Returns: boolean
+      }
       assign_user_role: {
         Args: {
           _user_id: string
@@ -854,9 +945,31 @@ export type Database = {
         }
         Returns: undefined
       }
+      log_security_event: {
+        Args: { _event_type: string; _details?: Json; _severity?: string }
+        Returns: undefined
+      }
       mark_expired_opportunities: {
         Args: Record<PropertyKey, never>
         Returns: number
+      }
+      register_admin_with_code: {
+        Args: {
+          _email: string
+          _password: string
+          _name: string
+          _access_code: string
+        }
+        Returns: Json
+      }
+      send_bulk_notification: {
+        Args: {
+          _subject: string
+          _content: string
+          _recipient_type?: string
+          _target_roles?: Database["public"]["Enums"]["app_role"][]
+        }
+        Returns: string
       }
     }
     Enums: {

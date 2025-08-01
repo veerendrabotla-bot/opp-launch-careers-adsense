@@ -62,8 +62,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.log('Assigning role:', role, 'to user:', userId);
       
       // Use the secure function to assign the role
-      const { error } = await supabase.rpc('assign_user_role_secure', {
-        _user_id: userId,
+      const { error } = await supabase.rpc('assign_role_secure', {
+        _target_user_id: userId,
         _role: role
       });
 
@@ -80,21 +80,54 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // Secure auth state cleanup
+  const cleanupAuthState = () => {
+    console.log('Cleaning up auth state');
+    
+    // Remove standard auth tokens
+    try {
+      localStorage.removeItem('supabase.auth.token');
+      
+      // Remove all Supabase auth keys from localStorage
+      Object.keys(localStorage).forEach((key) => {
+        if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+          localStorage.removeItem(key);
+        }
+      });
+      
+      // Remove from sessionStorage if in use
+      if (typeof sessionStorage !== 'undefined') {
+        Object.keys(sessionStorage).forEach((key) => {
+          if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+            sessionStorage.removeItem(key);
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error during auth cleanup:', error);
+    }
+  };
+
   useEffect(() => {
+    let mounted = true;
+
     // Get initial session
     const getSession = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) {
           console.error('Error getting session:', error);
-        } else if (session?.user) {
+        } else if (session?.user && mounted) {
           setUser(session.user);
-          await fetchUserRole(session.user.id);
+          // Defer role fetching to prevent deadlocks
+          setTimeout(() => {
+            if (mounted) fetchUserRole(session.user.id);
+          }, 100);
         }
       } catch (error) {
         console.error('Error in getSession:', error);
       } finally {
-        setLoading(false);
+        if (mounted) setLoading(false);
       }
     };
 
@@ -104,11 +137,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth event:', event, session?.user?.email);
       
+      if (!mounted) return;
+      
       if (session?.user) {
         setUser(session.user);
         // Defer role fetching to prevent deadlocks
         setTimeout(() => {
-          fetchUserRole(session.user.id);
+          if (mounted) fetchUserRole(session.user.id);
         }, 100);
       } else {
         setUser(null);
@@ -118,13 +153,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signUp = async (email: string, password: string, name: string, role: string = 'user') => {
     try {
       setLoading(true);
       console.log('Starting signup process for role:', role);
+
+      // Clean up any existing auth state
+      cleanupAuthState();
 
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -144,15 +185,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (data.user) {
         console.log('User created:', data.user.id, 'with requested role:', role);
         
-        // Wait a moment for the trigger to complete, then override with the correct role
-        setTimeout(async () => {
-          const roleAssigned = await assignUserRole(data.user!.id, role as 'user' | 'admin' | 'moderator');
-          if (roleAssigned) {
-            console.log('Role assignment completed successfully');
-            // Refresh the user role
-            await fetchUserRole(data.user!.id);
-          }
-        }, 2000);
+        // For admin role, we need to use the secure assignment
+        if (role === 'admin') {
+          // The role assignment will be handled by the admin registration process
+          console.log('Admin role assignment will be handled separately');
+        } else {
+          // For other roles, assign immediately
+          setTimeout(async () => {
+            const roleAssigned = await assignUserRole(data.user!.id, role as 'user' | 'admin' | 'moderator');
+            if (roleAssigned) {
+              console.log('Role assignment completed successfully');
+              // Refresh the user role
+              await fetchUserRole(data.user!.id);
+            }
+          }, 2000);
+        }
 
         toast({
           title: "Account created!",
@@ -173,12 +220,32 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setLoading(true);
       
+      // Clean up existing state
+      cleanupAuthState();
+      
+      // Attempt global sign out
+      try {
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch (err) {
+        // Continue even if this fails
+        console.log('Global signout failed, continuing with signin');
+      }
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) throw error;
+
+      // Log security event
+      if (data.user) {
+        await supabase.rpc('log_security_event', {
+          _event_type: 'user_login',
+          _details: { email, login_time: new Date().toISOString() },
+          _severity: 'info'
+        });
+      }
 
       return { error: null };
     } catch (error: any) {
@@ -191,20 +258,35 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const signOut = async () => {
     try {
       setLoading(true);
-      const { error } = await supabase.auth.signOut();
+      
+      // Log security event before logout
+      await supabase.rpc('log_security_event', {
+        _event_type: 'user_logout',
+        _details: { logout_time: new Date().toISOString() },
+        _severity: 'info'
+      });
+      
+      // Clean up auth state
+      cleanupAuthState();
+      
+      // Attempt global sign out
+      const { error } = await supabase.auth.signOut({ scope: 'global' });
       
       if (error) throw error;
       
       setUser(null);
       setUserRole(null);
       
-      // Clear any cached data
-      localStorage.removeItem('supabase.auth.token');
-      
       toast({
         title: "Signed out successfully",
         description: "You have been logged out of your account.",
       });
+
+      // Force page reload for clean state
+      setTimeout(() => {
+        window.location.href = '/auth';
+      }, 500);
+      
     } catch (error: any) {
       console.error('Error signing out:', error);
       toast({
