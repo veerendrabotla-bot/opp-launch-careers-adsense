@@ -1,7 +1,6 @@
 
 import React from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import BulkEmailSystem from '@/components/admin/BulkEmailSystem';
+import EnhancedBulkEmailSystem from '@/components/admin/EnhancedBulkEmailSystem';
 import ProtectedRoute from '@/components/ProtectedRoute';
 
 const AdminBulkEmail = () => {
@@ -13,14 +12,14 @@ const AdminBulkEmail = () => {
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-3xl font-bold text-gray-900">Bulk Email System</h1>
-                <p className="text-gray-600 mt-2">Send notifications to all platform users</p>
+                <p className="text-gray-600 mt-2">Send real email notifications to platform users</p>
               </div>
             </div>
           </div>
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <BulkEmailSystem />
+          <EnhancedBulkEmailSystem />
         </div>
       </div>
     </ProtectedRoute>

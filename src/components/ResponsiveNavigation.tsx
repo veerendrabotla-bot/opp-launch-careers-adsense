@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Home, Search, Bookmark, User, Settings, Bell, Plus } from 'lucide-react';
+import { Menu, X, Home, Search, Bookmark, User, Settings, Bell, Plus, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import NotificationSystem from './NotificationSystem';
@@ -35,7 +35,11 @@ const ResponsiveNavigation = () => {
       { path: '/applications', label: 'Applications', icon: User },
       { path: '/submit', label: 'Submit', icon: Plus },
     ] : []),
-    ...(userRole === 'admin' || userRole === 'moderator' ? [
+    ...(userRole === 'admin' ? [
+      { path: '/admin', label: 'Admin Panel', icon: Shield },
+      { path: '/admin/bulk-email', label: 'Bulk Email', icon: Settings },
+    ] : []),
+    ...(userRole === 'moderator' || userRole === 'admin' ? [
       { path: '/moderator/dashboard', label: 'Moderate', icon: Settings },
     ] : []),
   ];

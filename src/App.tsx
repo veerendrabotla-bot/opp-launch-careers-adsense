@@ -23,6 +23,7 @@ const ApplicationsPage = lazy(() => import("@/pages/Applications"));
 const SubmitPage = lazy(() => import("@/pages/Submit"));
 const AdminDashboardPage = lazy(() => import("@/pages/AdminDashboard"));
 const AdminAnalyticsPage = lazy(() => import("@/pages/AdminAnalytics"));
+const AdminBulkEmailPage = lazy(() => import("@/pages/AdminBulkEmail"));
 const ModeratorDashboardPage = lazy(() => import("@/pages/ModeratorDashboard"));
 const PendingOpportunitiesPage = lazy(() => import("@/pages/ModeratorPending"));
 const ApprovedOpportunitiesPage = lazy(() => import("@/pages/ModeratorApproved"));
@@ -59,6 +60,7 @@ const App = () => {
                     <Route path="/admin" element={<AdminPage />} />
                     <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
                     <Route path="/admin/analytics" element={<AdminAnalyticsPage />} />
+                    <Route path="/admin/bulk-email" element={<AdminBulkEmailPage />} />
                     <Route path="/moderator/dashboard" element={<ModeratorDashboardPage />} />
                     <Route path="/moderator/pending" element={<PendingOpportunitiesPage />} />
                     <Route path="/moderator/approved" element={<ApprovedOpportunitiesPage />} />
