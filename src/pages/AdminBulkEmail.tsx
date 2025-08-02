@@ -5,7 +5,7 @@ import BackButton from '@/components/BackButton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import EnhancedBulkEmailSystem from '@/components/admin/EnhancedBulkEmailSystem';
 import GmailBulkEmailSystem from '@/components/admin/GmailBulkEmailSystem';
-import { Mail } from 'lucide-react';
+import { Mail, Settings } from 'lucide-react';
 
 const AdminBulkEmail = () => {
   return (
@@ -16,8 +16,8 @@ const AdminBulkEmail = () => {
             <div className="flex items-center gap-4">
               <BackButton to="/admin" />
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Bulk Email System</h1>
-                <p className="text-gray-600 mt-2">Send email campaigns to platform users</p>
+                <h1 className="text-3xl font-bold text-gray-900">Email Campaigns</h1>
+                <p className="text-gray-600 mt-2">Send bulk email campaigns to platform users</p>
               </div>
             </div>
           </div>
@@ -31,7 +31,7 @@ const AdminBulkEmail = () => {
                 Gmail SMTP
               </TabsTrigger>
               <TabsTrigger value="resend" className="flex items-center gap-2">
-                <Mail className="h-4 w-4" />
+                <Settings className="h-4 w-4" />
                 Resend Service
               </TabsTrigger>
             </TabsList>

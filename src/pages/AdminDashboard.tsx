@@ -96,7 +96,7 @@ const AdminDashboard = () => {
       title: "Bulk Email",
       description: "Send email campaigns",
       icon: Settings,
-      link: "/admin/bulk-email",
+      link: "/admin/email-campaigns",
       color: "bg-indigo-100 text-indigo-600"
     },
     {
