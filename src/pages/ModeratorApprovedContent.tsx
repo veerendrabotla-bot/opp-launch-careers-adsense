@@ -149,7 +149,7 @@ const ModeratorApprovedContent = () => {
                         <CheckCircle className="h-3 w-3 mr-1" />
                         Approved
                       </Badge>
-                      {item.is_featured && (
+                      {item.featured && (
                         <Badge className="bg-blue-100 text-blue-800">Featured</Badge>
                       )}
                     </div>
