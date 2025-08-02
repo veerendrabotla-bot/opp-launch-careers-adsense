@@ -23,6 +23,12 @@ import {
 } from 'lucide-react';
 import { sendEmail, validateEmailConfig, createEmailTemplate } from '@/utils/emailService';
 
+interface Recipient {
+  id: string;
+  name: string;
+  email: string;
+}
+
 const GmailBulkEmailSystem = () => {
   const [emailConfig, setEmailConfig] = useState({
     service: 'gmail' as const,
@@ -42,7 +48,7 @@ const GmailBulkEmailSystem = () => {
     trackLinks: true
   });
 
-  const [recipients, setRecipients] = useState<any[]>([]);
+  const [recipients, setRecipients] = useState<Recipient[]>([]);
   const [sending, setSending] = useState(false);
   const [configValid, setConfigValid] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
@@ -61,7 +67,6 @@ const GmailBulkEmailSystem = () => {
       let query = supabase.from('profiles').select('id, name, email');
 
       if (emailData.recipientType === 'role_based') {
-        // You could filter by user roles here
         query = query.limit(emailData.maxRecipients);
       } else {
         query = query.limit(emailData.maxRecipients);
@@ -105,10 +110,8 @@ const GmailBulkEmailSystem = () => {
     let errorCount = 0;
 
     try {
-      // Gmail has a limit of ~500 emails per day for free accounts
-      // We'll send in small batches with delays
       const batchSize = 10;
-      const delay = 2000; // 2 seconds between batches
+      const delay = 2000;
 
       for (let i = 0; i < recipients.length; i += batchSize) {
         const batch = recipients.slice(i, i + batchSize);
@@ -133,13 +136,11 @@ const GmailBulkEmailSystem = () => {
           await Promise.allSettled(emailPromises);
           successCount += batch.length;
 
-          // Update progress
           toast({
             title: "Sending Progress",
             description: `Sent ${Math.min(i + batchSize, recipients.length)} of ${recipients.length} emails`
           });
 
-          // Delay between batches to respect Gmail limits
           if (i + batchSize < recipients.length) {
             await new Promise(resolve => setTimeout(resolve, delay));
           }
@@ -175,7 +176,6 @@ const GmailBulkEmailSystem = () => {
       unsubscribeUrl
     );
     
-    // Open preview in new window
     const previewWindow = window.open('', '_blank');
     if (previewWindow) {
       previewWindow.document.write(previewHtml);
