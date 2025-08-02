@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -351,7 +350,7 @@ const GmailBulkEmailSystem = () => {
           <div className="bg-gray-50 p-4 rounded-lg">
             <h4 className="font-medium mb-2">Preview Recipients:</h4>
             <div className="space-y-1 max-h-40 overflow-y-auto">
-              {recipients.slice(0, 10).map((recipient: Recipient) => (
+              {recipients.slice(0, 10).map((recipient) => (
                 <div key={recipient.id} className="text-sm text-gray-600">
                   {recipient.name} - {recipient.email}
                 </div>
