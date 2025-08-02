@@ -75,7 +75,13 @@ const GmailBulkEmailSystem = () => {
       const { data, error } = await query;
       if (error) throw error;
 
-      setRecipients(data || []);
+      const typedData: Recipient[] = (data || []).map(item => ({
+        id: item.id || '',
+        name: item.name || 'No Name',
+        email: item.email || ''
+      }));
+
+      setRecipients(typedData);
     } catch (error) {
       console.error('Error fetching recipients:', error);
       toast({
@@ -345,9 +351,9 @@ const GmailBulkEmailSystem = () => {
           <div className="bg-gray-50 p-4 rounded-lg">
             <h4 className="font-medium mb-2">Preview Recipients:</h4>
             <div className="space-y-1 max-h-40 overflow-y-auto">
-              {recipients.slice(0, 10).map((recipient) => (
+              {recipients.slice(0, 10).map((recipient: Recipient) => (
                 <div key={recipient.id} className="text-sm text-gray-600">
-                  {recipient.name || 'No Name'} - {recipient.email}
+                  {recipient.name} - {recipient.email}
                 </div>
               ))}
               {recipients.length > 10 && (
