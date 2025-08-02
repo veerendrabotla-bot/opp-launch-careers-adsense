@@ -1,4 +1,3 @@
-
 import { Suspense, lazy } from 'react';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -29,6 +28,9 @@ const AdminDashboard = lazy(() => import('@/pages/AdminDashboard'));
 const UserManagement = lazy(() => import('@/pages/UserManagement'));
 const AdminNotifications = lazy(() => import('@/pages/AdminNotifications'));
 const AdminBulkEmail = lazy(() => import('@/pages/AdminBulkEmail'));
+const AdminExpired = lazy(() => import('@/pages/AdminExpired'));
+const AdminAnalytics = lazy(() => import('@/pages/AdminAnalytics'));
+const AdminSettings = lazy(() => import('@/pages/AdminSettings'));
 
 // Moderator pages
 const ModeratorDashboard = lazy(() => import('@/pages/ModeratorDashboard'));
@@ -115,6 +117,21 @@ function App() {
                     <Route path="/admin/bulk-email" element={
                       <ProtectedRoute requireAuth={true} requireAdmin={true}>
                         <AdminBulkEmail />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/admin/expired" element={
+                      <ProtectedRoute requireAuth={true} requireAdmin={true}>
+                        <AdminExpired />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/admin/analytics" element={
+                      <ProtectedRoute requireAuth={true} requireAdmin={true}>
+                        <AdminAnalytics />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/admin/settings" element={
+                      <ProtectedRoute requireAuth={true} requireAdmin={true}>
+                        <AdminSettings />
                       </ProtectedRoute>
                     } />
 

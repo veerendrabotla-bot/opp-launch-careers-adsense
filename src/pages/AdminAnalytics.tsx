@@ -1,176 +1,242 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import ProtectedRoute from '@/components/ProtectedRoute';
 import BackButton from '@/components/BackButton';
 import { supabase } from '@/integrations/supabase/client';
-import { 
-  BarChart3, 
-  Users, 
-  Eye, 
-  TrendingUp,
-  Activity,
-  Calendar,
-  Globe,
-  MousePointer
-} from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
+import { TrendingUp, Users, FileText, Activity, Calendar } from 'lucide-react';
 
 const AdminAnalytics = () => {
-  const [analytics, setAnalytics] = useState({
+  const [stats, setStats] = useState({
     totalUsers: 0,
     totalOpportunities: 0,
-    totalViews: 0,
     totalApplications: 0,
-    monthlyGrowth: 0,
-    topPages: [],
-    recentActivity: []
+    activeUsers: 0
   });
+  
+  const [monthlyData, setMonthlyData] = useState<any[]>([]);
+  const [userActivityData, setUserActivityData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchAnalytics();
+    fetchAnalyticsData();
   }, []);
 
-  const fetchAnalytics = async () => {
+  const fetchAnalyticsData = async () => {
     try {
-      // Fetch basic counts
-      const [usersRes, opportunitiesRes, analyticsRes, applicationsRes] = await Promise.all([
-        supabase.from('profiles').select('id', { count: 'exact' }),
-        supabase.from('opportunities').select('id', { count: 'exact' }),
-        supabase.from('analytics').select('*'),
-        supabase.from('applications').select('id', { count: 'exact' })
+      setLoading(true);
+
+      // Fetch basic stats
+      const { data: profiles } = await supabase.from('profiles').select('id, created_at');
+      const { data: opportunities } = await supabase.from('opportunities').select('id, created_at');
+      const { data: applications } = await supabase.from('applications').select('id, created_at');
+
+      setStats({
+        totalUsers: profiles?.length || 0,
+        totalOpportunities: opportunities?.length || 0,
+        totalApplications: applications?.length || 0,
+        activeUsers: profiles?.filter(p => {
+          const createdDate = new Date(p.created_at);
+          const thirtyDaysAgo = new Date();
+          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+          return createdDate >= thirtyDaysAgo;
+        }).length || 0
+      });
+
+      // Generate monthly data for charts
+      const last6Months = [];
+      for (let i = 5; i >= 0; i--) {
+        const date = new Date();
+        date.setMonth(date.getMonth() - i);
+        const monthName = date.toLocaleDateString('en-US', { month: 'short' });
+        
+        const usersThisMonth = profiles?.filter(p => {
+          const createdDate = new Date(p.created_at);
+          return createdDate.getMonth() === date.getMonth() && 
+                 createdDate.getFullYear() === date.getFullYear();
+        }).length || 0;
+
+        const opportunitiesThisMonth = opportunities?.filter(o => {
+          const createdDate = new Date(o.created_at);
+          return createdDate.getMonth() === date.getMonth() && 
+                 createdDate.getFullYear() === date.getFullYear();
+        }).length || 0;
+
+        last6Months.push({
+          month: monthName,
+          users: usersThisMonth,
+          opportunities: opportunitiesThisMonth
+        });
+      }
+      
+      setMonthlyData(last6Months);
+
+      // Generate user activity data
+      setUserActivityData([
+        { name: 'New Users', value: stats.activeUsers },
+        { name: 'Returning Users', value: stats.totalUsers - stats.activeUsers },
+        { name: 'Active Applications', value: stats.totalApplications }
       ]);
 
-      const totalViews = analyticsRes.data?.filter(a => a.event_type === 'page_view').length || 0;
-      
-      setAnalytics({
-        totalUsers: usersRes.count || 0,
-        totalOpportunities: opportunitiesRes.count || 0,
-        totalViews,
-        totalApplications: applicationsRes.count || 0,
-        monthlyGrowth: 12.5, // Mock data for now
-        topPages: [
-          { page: '/opportunities', views: Math.floor(totalViews * 0.4) },
-          { page: '/scholarships', views: Math.floor(totalViews * 0.3) },
-          { page: '/dashboard', views: Math.floor(totalViews * 0.2) }
-        ],
-        recentActivity: analyticsRes.data?.slice(-10) || []
-      });
     } catch (error) {
       console.error('Error fetching analytics:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const statCards = [
-    {
-      title: "Total Users",
-      value: analytics.totalUsers,
-      icon: Users,
-      color: "bg-blue-100 text-blue-600"
-    },
-    {
-      title: "Total Opportunities",
-      value: analytics.totalOpportunities,
-      icon: Activity,
-      color: "bg-green-100 text-green-600"
-    },
-    {
-      title: "Page Views",
-      value: analytics.totalViews,
-      icon: Eye,
-      color: "bg-purple-100 text-purple-600"
-    },
-    {
-      title: "Applications",
-      value: analytics.totalApplications,
-      icon: MousePointer,
-      color: "bg-yellow-100 text-yellow-600"
-    }
-  ];
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28'];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex items-center justify-between">
+    <ProtectedRoute requireAuth={true} requireAdmin={true}>
+      <div className="min-h-screen bg-gray-50">
+        <div className="bg-white border-b">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="flex items-center gap-4">
-              <BackButton to="/admin/dashboard" />
+              <BackButton to="/admin" />
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Analytics Dashboard</h1>
-                <p className="text-gray-600 mt-2">Platform usage and performance metrics</p>
+                <h1 className="text-3xl font-bold text-gray-900">Platform Analytics</h1>
+                <p className="text-gray-600 mt-2">Comprehensive platform insights and metrics</p>
               </div>
             </div>
-            <Badge className="bg-red-100 text-red-800">
-              <BarChart3 className="h-3 w-3 mr-1" />
-              Admin Analytics
-            </Badge>
           </div>
         </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {statCards.map((stat, index) => (
-            <Card key={index} className="hover:shadow-lg transition-shadow">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <Card>
               <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div className={`p-2 rounded-lg ${stat.color}`}>
-                    <stat.icon className="h-6 w-6" />
-                  </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-                    <p className="text-sm font-medium text-gray-600">{stat.title}</p>
+                <div className="flex items-center">
+                  <Users className="h-8 w-8 text-blue-600" />
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">Total Users</p>
+                    <p className="text-2xl font-bold text-gray-900">{stats.totalUsers}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
-          ))}
-        </div>
 
-        {/* Charts and Details */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Globe className="h-5 w-5" />
-                Top Pages
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {analytics.topPages.map((page, index) => (
-                  <div key={index} className="flex justify-between items-center">
-                    <span className="text-sm font-medium">{page.page}</span>
-                    <Badge variant="secondary">{page.views} views</Badge>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center">
+                  <FileText className="h-8 w-8 text-green-600" />
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">Opportunities</p>
+                    <p className="text-2xl font-bold text-gray-900">{stats.totalOpportunities}</p>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                </div>
+              </CardContent>
+            </Card>
 
-          <Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center">
+                  <Activity className="h-8 w-8 text-yellow-600" />
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">Applications</p>
+                    <p className="text-2xl font-bold text-gray-900">{stats.totalApplications}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center">
+                  <TrendingUp className="h-8 w-8 text-purple-600" />
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">Active Users (30d)</p>
+                    <p className="text-2xl font-bold text-gray-900">{stats.activeUsers}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Charts */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Monthly Growth</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={monthlyData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="users" fill="#8884d8" name="New Users" />
+                    <Bar dataKey="opportunities" fill="#82ca9d" name="Opportunities" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>User Activity Distribution</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={userActivityData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {userActivityData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Additional Insights */}
+          <Card className="mt-6">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Calendar className="h-5 w-5" />
-                Growth Rate
+                Platform Insights
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-green-600 mb-2">
-                  +{analytics.monthlyGrowth}%
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="text-center">
+                  <p className="text-3xl font-bold text-blue-600">
+                    {stats.totalOpportunities > 0 ? (stats.totalApplications / stats.totalOpportunities).toFixed(1) : '0'}
+                  </p>
+                  <p className="text-sm text-gray-600">Avg. Applications per Opportunity</p>
                 </div>
-                <p className="text-sm text-gray-600">Monthly user growth</p>
-                <div className="mt-4 flex items-center justify-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-green-600" />
-                  <span className="text-sm text-green-600">Trending upward</span>
+                <div className="text-center">
+                  <p className="text-3xl font-bold text-green-600">
+                    {stats.totalUsers > 0 ? ((stats.activeUsers / stats.totalUsers) * 100).toFixed(1) : '0'}%
+                  </p>
+                  <p className="text-sm text-gray-600">User Engagement Rate</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-3xl font-bold text-purple-600">
+                    {stats.totalUsers > 0 ? (stats.totalApplications / stats.totalUsers).toFixed(1) : '0'}
+                  </p>
+                  <p className="text-sm text-gray-600">Applications per User</p>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
       </div>
-    </div>
+    </ProtectedRoute>
   );
 };
 

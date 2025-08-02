@@ -93,6 +93,13 @@ const AdminDashboard = () => {
       color: "bg-purple-100 text-purple-600"
     },
     {
+      title: "Bulk Email",
+      description: "Send email campaigns",
+      icon: Settings,
+      link: "/admin/bulk-email",
+      color: "bg-indigo-100 text-indigo-600"
+    },
+    {
       title: "Expired Content",
       description: "Manage expired opportunities",
       icon: AlertTriangle,

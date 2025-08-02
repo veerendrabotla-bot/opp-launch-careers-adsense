@@ -4,13 +4,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
+import ProtectedRoute from '@/components/ProtectedRoute';
+import BackButton from '@/components/BackButton';
+import { AlertTriangle, Calendar, Trash2, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { Archive, Trash2, RefreshCw, Loader2, Calendar, Building, MapPin } from 'lucide-react';
+import { Database } from '@/integrations/supabase/types';
+
+type Opportunity = Database['public']['Tables']['opportunities']['Row'];
 
 const AdminExpired = () => {
-  const [expiredOpportunities, setExpiredOpportunities] = useState<any[]>([]);
+  const [expiredOpportunities, setExpiredOpportunities] = useState<Opportunity[]>([]);
   const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -23,14 +27,12 @@ const AdminExpired = () => {
       const { data, error } = await supabase
         .from('opportunities')
         .select('*')
-        .lt('deadline', new Date().toISOString().split('T')[0])
-        .eq('is_approved', true)
+        .or('is_expired.eq.true,deadline.lt.' + new Date().toISOString().split('T')[0])
         .order('deadline', { ascending: false });
 
       if (error) throw error;
       setExpiredOpportunities(data || []);
     } catch (error: any) {
-      console.error('Error fetching expired opportunities:', error);
       toast({
         title: "Error",
         description: "Failed to fetch expired opportunities",
@@ -41,234 +43,140 @@ const AdminExpired = () => {
     }
   };
 
-  const extendDeadline = async (opportunityId: string) => {
+  const deleteOpportunity = async (id: string) => {
     try {
-      setActionLoading(opportunityId);
-      
-      // Extend deadline by 30 days
-      const newDeadline = new Date();
-      newDeadline.setDate(newDeadline.getDate() + 30);
-      
-      const { error } = await supabase
-        .from('opportunities')
-        .update({ 
-          deadline: newDeadline.toISOString().split('T')[0],
-          is_expired: false
-        })
-        .eq('id', opportunityId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "Deadline extended by 30 days"
-      });
-
-      fetchExpiredOpportunities();
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive"
-      });
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  const archiveOpportunity = async (opportunityId: string) => {
-    try {
-      setActionLoading(opportunityId);
-      
-      const { error } = await supabase
-        .from('opportunities')
-        .update({ is_expired: true })
-        .eq('id', opportunityId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "Opportunity archived"
-      });
-
-      fetchExpiredOpportunities();
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive"
-      });
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  const deleteOpportunity = async (opportunityId: string) => {
-    if (!confirm('Are you sure you want to permanently delete this opportunity?')) return;
-
-    try {
-      setActionLoading(opportunityId);
-      
       const { error } = await supabase
         .from('opportunities')
         .delete()
-        .eq('id', opportunityId);
+        .eq('id', id);
 
       if (error) throw error;
 
       toast({
         title: "Success",
-        description: "Opportunity deleted permanently"
+        description: "Opportunity deleted successfully"
       });
-
+      
       fetchExpiredOpportunities();
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message,
+        description: "Failed to delete opportunity",
         variant: "destructive"
       });
-    } finally {
-      setActionLoading(null);
     }
   };
 
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case "Internship": return "bg-blue-100 text-blue-800";
-      case "Contest": return "bg-green-100 text-green-800";
-      case "Event": return "bg-purple-100 text-purple-800";
-      case "Scholarship": return "bg-amber-100 text-amber-800";
-      default: return "bg-gray-100 text-gray-800";
+  const markAsExpired = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('opportunities')
+        .update({ is_expired: true })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Opportunity marked as expired"
+      });
+      
+      fetchExpiredOpportunities();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to mark as expired",
+        variant: "destructive"
+      });
     }
   };
-
-  const daysSinceExpired = (deadline: string) => {
-    const deadlineDate = new Date(deadline);
-    const today = new Date();
-    const diffTime = today.getTime() - deadlineDate.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading expired opportunities...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20 md:pb-0">
-      <div className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Expired Opportunities</h1>
-              <p className="text-gray-600 mt-2">Manage opportunities past their deadline</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Archive className="h-5 w-5 text-gray-500" />
-              <span className="text-sm text-gray-600">{expiredOpportunities.length} expired</span>
+    <ProtectedRoute requireAuth={true} requireAdmin={true}>
+      <div className="min-h-screen bg-gray-50">
+        <div className="bg-white border-b">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="flex items-center gap-4">
+              <BackButton to="/admin" />
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">Expired Content Management</h1>
+                <p className="text-gray-600 mt-2">Manage expired opportunities and content</p>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {expiredOpportunities.length === 0 ? (
-          <Card>
-            <CardContent className="pt-6 text-center">
-              <Archive className="h-12 w-12 text-green-500 mx-auto mb-4" />
-              <h2 className="text-xl font-semibold mb-2">No expired opportunities</h2>
-              <p className="text-gray-600">All opportunities are within their deadline.</p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-6">
-            {expiredOpportunities.map(opportunity => (
-              <Card key={opportunity.id} className="border-red-200">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex justify-between items-center mb-6">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+              <span className="text-lg font-semibold">
+                {expiredOpportunities.length} Expired Opportunities
+              </span>
+            </div>
+            <Button onClick={fetchExpiredOpportunities} disabled={loading}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
+            </Button>
+          </div>
+
+          <div className="space-y-4">
+            {expiredOpportunities.map((opportunity) => (
+              <Card key={opportunity.id}>
+                <CardContent className="pt-6">
+                  <div className="flex justify-between items-start">
                     <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <Badge className={getTypeColor(opportunity.type)}>
-                          {opportunity.type}
-                        </Badge>
-                        <Badge variant="outline">{opportunity.domain}</Badge>
-                        <Badge variant="destructive">
-                          Expired {daysSinceExpired(opportunity.deadline)} days ago
-                        </Badge>
-                      </div>
-                      <CardTitle className="text-xl mb-2">{opportunity.title}</CardTitle>
+                      <h3 className="font-semibold text-lg mb-2">{opportunity.title}</h3>
+                      <p className="text-gray-600 mb-4 line-clamp-2">{opportunity.description}</p>
+                      
                       <div className="flex items-center gap-4 text-sm text-gray-500">
-                        {opportunity.company && (
-                          <div className="flex items-center gap-1">
-                            <Building className="h-4 w-4" />
-                            {opportunity.company}
-                          </div>
-                        )}
-                        {opportunity.location && (
-                          <div className="flex items-center gap-1">
-                            <MapPin className="h-4 w-4" />
-                            {opportunity.location}
-                          </div>
-                        )}
                         <div className="flex items-center gap-1">
                           <Calendar className="h-4 w-4" />
-                          Expired: {new Date(opportunity.deadline).toLocaleDateString()}
+                          Deadline: {new Date(opportunity.deadline).toLocaleDateString()}
                         </div>
+                        <Badge variant={opportunity.is_expired ? "destructive" : "secondary"}>
+                          {opportunity.is_expired ? "Expired" : "Past Due"}
+                        </Badge>
                       </div>
                     </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-600 mb-4">{opportunity.description}</p>
-                  
-                  <div className="flex items-center gap-3 pt-4 border-t">
-                    <Button
-                      onClick={() => extendDeadline(opportunity.id)}
-                      disabled={actionLoading === opportunity.id}
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      {actionLoading === opportunity.id ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <RefreshCw className="h-4 w-4 mr-2" />
-                      )}
-                      Extend Deadline
-                    </Button>
                     
-                    <Button
-                      variant="outline"
-                      onClick={() => archiveOpportunity(opportunity.id)}
-                      disabled={actionLoading === opportunity.id}
-                    >
-                      <Archive className="h-4 w-4 mr-2" />
-                      Archive
-                    </Button>
-
-                    <Button
-                      variant="destructive"
-                      onClick={() => deleteOpportunity(opportunity.id)}
-                      disabled={actionLoading === opportunity.id}
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete
-                    </Button>
+                    <div className="flex gap-2 ml-4">
+                      {!opportunity.is_expired && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => markAsExpired(opportunity.id)}
+                        >
+                          Mark Expired
+                        </Button>
+                      )}
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => deleteOpportunity(opportunity.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Delete
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
             ))}
+
+            {expiredOpportunities.length === 0 && !loading && (
+              <Card>
+                <CardContent className="pt-6 text-center">
+                  <AlertTriangle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No Expired Content</h3>
+                  <p className="text-gray-500">All opportunities are current and active.</p>
+                </CardContent>
+              </Card>
+            )}
           </div>
-        )}
+        </div>
       </div>
-    </div>
+    </ProtectedRoute>
   );
 };
 
