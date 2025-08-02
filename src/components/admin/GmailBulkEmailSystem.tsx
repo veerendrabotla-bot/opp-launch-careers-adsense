@@ -56,7 +56,7 @@ const GmailBulkEmailSystem = () => {
   const { toast } = useToast();
 
   const validateConfig = () => {
-    const isValid = smtpConfig.user && smtpConfig.password;
+    const isValid = Boolean(smtpConfig.user && smtpConfig.password);
     setIsConfigValid(isValid);
     
     if (isValid) {
