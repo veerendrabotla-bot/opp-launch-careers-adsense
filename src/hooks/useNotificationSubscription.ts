@@ -1,5 +1,5 @@
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -16,22 +16,33 @@ export const useNotificationSubscription = ({
   const { user } = useAuth();
   const channelRef = useRef<any>(null);
   const mountedRef = useRef(true);
+  const subscribedRef = useRef(false);
+
+  const cleanup = useCallback(() => {
+    if (channelRef.current) {
+      console.log('Cleaning up notification subscription');
+      try {
+        supabase.removeChannel(channelRef.current);
+      } catch (error) {
+        console.error('Error removing channel:', error);
+      }
+      channelRef.current = null;
+      subscribedRef.current = false;
+    }
+  }, []);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || subscribedRef.current) return;
 
-    // Clean up existing subscription
-    if (channelRef.current) {
-      console.log('Cleaning up existing notification subscription');
-      supabase.removeChannel(channelRef.current);
-      channelRef.current = null;
-    }
+    // Clean up any existing subscription first
+    cleanup();
 
     const channelName = `notifications-${user.id}-${Date.now()}`;
     
     try {
-      const channel = supabase
-        .channel(channelName)
+      const channel = supabase.channel(channelName);
+      
+      channel
         .on(
           'postgres_changes',
           {
@@ -60,6 +71,9 @@ export const useNotificationSubscription = ({
         )
         .subscribe((status) => {
           console.log(`Notification subscription status: ${status}`);
+          if (status === 'SUBSCRIBED') {
+            subscribedRef.current = true;
+          }
         });
 
       channelRef.current = channel;
@@ -69,17 +83,14 @@ export const useNotificationSubscription = ({
 
     return () => {
       mountedRef.current = false;
-      if (channelRef.current) {
-        console.log('Cleaning up notification subscription on unmount');
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
+      cleanup();
     };
-  }, [user?.id, onNewNotification, onRefresh]);
+  }, [user?.id, onNewNotification, onRefresh, cleanup]);
 
   useEffect(() => {
     return () => {
       mountedRef.current = false;
+      cleanup();
     };
-  }, []);
+  }, [cleanup]);
 };

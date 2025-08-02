@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -22,9 +22,23 @@ export const useRealtimeNotifications = () => {
   const { user } = useAuth();
   const channelRef = useRef<any>(null);
   const mountedRef = useRef(true);
+  const subscribedRef = useRef(false);
+
+  const cleanup = useCallback(() => {
+    if (channelRef.current && subscribedRef.current) {
+      console.log('Cleaning up realtime notifications subscription');
+      try {
+        supabase.removeChannel(channelRef.current);
+      } catch (error) {
+        console.error('Error removing realtime channel:', error);
+      }
+      channelRef.current = null;
+      subscribedRef.current = false;
+    }
+  }, []);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || subscribedRef.current) return;
 
     const fetchNotifications = async () => {
       try {
@@ -51,17 +65,14 @@ export const useRealtimeNotifications = () => {
     fetchNotifications();
 
     // Clean up existing subscription
-    if (channelRef.current) {
-      console.log('Cleaning up existing realtime notifications subscription');
-      supabase.removeChannel(channelRef.current);
-      channelRef.current = null;
-    }
+    cleanup();
 
     const channelName = `notifications-realtime-${user.id}-${Date.now()}`;
     
     try {
-      const channel = supabase
-        .channel(channelName)
+      const channel = supabase.channel(channelName);
+      
+      channel
         .on(
           'postgres_changes',
           {
@@ -89,6 +100,9 @@ export const useRealtimeNotifications = () => {
         )
         .subscribe((status) => {
           console.log(`Realtime notifications subscription status: ${status}`);
+          if (status === 'SUBSCRIBED') {
+            subscribedRef.current = true;
+          }
         });
 
       channelRef.current = channel;
@@ -98,19 +112,16 @@ export const useRealtimeNotifications = () => {
 
     return () => {
       mountedRef.current = false;
-      if (channelRef.current) {
-        console.log('Cleaning up realtime notifications subscription on unmount');
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
+      cleanup();
     };
-  }, [user?.id]);
+  }, [user?.id, cleanup]);
 
   useEffect(() => {
     return () => {
       mountedRef.current = false;
+      cleanup();
     };
-  }, []);
+  }, [cleanup]);
 
   const markAsRead = async (notificationId: string) => {
     try {
