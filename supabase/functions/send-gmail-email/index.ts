@@ -6,11 +6,10 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-interface GmailEmailRequest {
+interface EmailRequest {
   to: string[];
   subject: string;
   html: string;
-  from?: string;
   smtp: {
     host: string;
     port: number;
@@ -19,78 +18,53 @@ interface GmailEmailRequest {
   };
 }
 
-serve(async (req) => {
+const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { to, subject, html, from, smtp }: GmailEmailRequest = await req.json();
+    const { to, subject, html, smtp }: EmailRequest = await req.json();
 
-    // Gmail SMTP configuration
-    const transport = {
-      hostname: smtp.host || "smtp.gmail.com",
-      port: smtp.port || 587,
-      username: smtp.user,
-      password: smtp.password, // This should be an App Password, not your regular Gmail password
-    };
-
-    console.log("Attempting to send email via Gmail SMTP...");
-
-    // Create email message
-    const message = `From: ${from || smtp.user}
-To: ${to.join(", ")}
-Subject: ${subject}
-MIME-Version: 1.0
-Content-Type: text/html; charset=UTF-8
-
-${html}`;
-
-    // For demo purposes, we'll simulate sending the email
-    // In a real implementation, you'd use a proper SMTP client
-    // This is because Deno's standard library doesn't include SMTP client functionality
+    // Use a simple SMTP library or service
+    // For Gmail, you would need to use the Gmail API or SMTP
+    // This is a mock implementation - in production, integrate with a proper email service
     
-    console.log("Email would be sent with the following details:");
-    console.log("To:", to);
-    console.log("Subject:", subject);
-    console.log("SMTP Host:", transport.hostname);
-    console.log("SMTP Port:", transport.port);
-    console.log("Username:", transport.username);
+    const response = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        service_id: "gmail",
+        template_id: "template_bulk",
+        user_id: smtp.user,
+        template_params: {
+          to_email: to[0],
+          subject: subject,
+          message: html,
+        }
+      })
+    });
 
-    // Simulate processing time
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    // For production, you would implement actual SMTP sending here
-    // You might want to use a service like Nodemailer or similar
-    
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: "Email sent successfully via Gmail SMTP",
-        recipients: to.length
-      }),
-      {
-        headers: {
-          "Content-Type": "application/json",
-          ...corsHeaders,
-        },
-      }
-    );
-
+    if (response.ok) {
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    } else {
+      throw new Error("Failed to send email");
+    }
   } catch (error: any) {
-    console.error("Error sending Gmail email:", error);
+    console.error("Error sending email:", error);
     return new Response(
-      JSON.stringify({ 
-        error: error.message || "Failed to send email via Gmail SMTP",
-        details: "Make sure you're using an App Password, not your regular Gmail password"
-      }),
+      JSON.stringify({ error: error.message }),
       {
         status: 500,
-        headers: {
-          "Content-Type": "application/json",
-          ...corsHeaders,
-        },
+        headers: { "Content-Type": "application/json", ...corsHeaders },
       }
     );
   }
-});
+};
+
+serve(handler);

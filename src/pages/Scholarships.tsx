@@ -5,7 +5,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useOpportunities } from '@/hooks/useOpportunities';
+import { useBookmarks } from '@/hooks/useBookmarks';
 import BackButton from '@/components/BackButton';
+import { Link } from 'react-router-dom';
 import { 
   GraduationCap, 
   Search, 
@@ -13,8 +15,9 @@ import {
   MapPin,
   ExternalLink,
   Bookmark,
+  BookmarkCheck,
   Loader2,
-  Filter
+  Eye
 } from 'lucide-react';
 
 const Scholarships = () => {
@@ -27,6 +30,7 @@ const Scholarships = () => {
     location: locationFilter !== 'All' ? locationFilter : undefined
   });
 
+  const { bookmarks, toggleBookmark } = useBookmarks();
   const filteredScholarships = opportunities.filter(opp => opp.type === 'Scholarship');
 
   if (loading) {
@@ -114,11 +118,24 @@ const Scholarships = () => {
                         )}
                       </div>
                       <CardTitle className="text-lg leading-tight">
-                        {scholarship.title}
+                        <Link 
+                          to={`/opportunities/${scholarship.id}`}
+                          className="hover:text-blue-600 transition-colors"
+                        >
+                          {scholarship.title}
+                        </Link>
                       </CardTitle>
                     </div>
-                    <Button variant="ghost" size="sm">
-                      <Bookmark className="h-4 w-4" />
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => toggleBookmark(scholarship.id)}
+                    >
+                      {bookmarks.includes(scholarship.id) ? (
+                        <BookmarkCheck className="h-4 w-4 text-blue-600" />
+                      ) : (
+                        <Bookmark className="h-4 w-4" />
+                      )}
                     </Button>
                   </div>
                 </CardHeader>
@@ -159,16 +176,24 @@ const Scholarships = () => {
                     <span className="text-sm text-gray-500">
                       {scholarship.domain}
                     </span>
-                    <a 
-                      href={scholarship.source_url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                    >
-                      <Button size="sm">
-                        Apply Now
-                        <ExternalLink className="h-4 w-4 ml-2" />
-                      </Button>
-                    </a>
+                    <div className="flex gap-2">
+                      <Link to={`/opportunities/${scholarship.id}`}>
+                        <Button size="sm" variant="outline">
+                          <Eye className="h-4 w-4 mr-1" />
+                          Details
+                        </Button>
+                      </Link>
+                      <a 
+                        href={scholarship.source_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                      >
+                        <Button size="sm">
+                          Apply
+                          <ExternalLink className="h-4 w-4 ml-2" />
+                        </Button>
+                      </a>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

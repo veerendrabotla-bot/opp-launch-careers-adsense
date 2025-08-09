@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useOpportunities } from '@/hooks/useOpportunities';
+import { useBookmarks } from '@/hooks/useBookmarks';
 import { Link } from 'react-router-dom';
 import { 
   Search, 
@@ -13,9 +14,11 @@ import {
   Building,
   ExternalLink,
   Bookmark,
+  BookmarkCheck,
   Filter,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  Eye
 } from 'lucide-react';
 
 const Opportunities = () => {
@@ -29,6 +32,8 @@ const Opportunities = () => {
     search: searchTerm,
     location: locationFilter !== 'All' ? locationFilter : undefined
   });
+
+  const { bookmarks, toggleBookmark } = useBookmarks();
 
   const getTypeColor = (type: string) => {
     switch (type) {
@@ -172,8 +177,17 @@ const Opportunities = () => {
                         </Link>
                       </CardTitle>
                     </div>
-                    <Button variant="ghost" size="sm" className="flex-shrink-0">
-                      <Bookmark className="h-4 w-4" />
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="flex-shrink-0"
+                      onClick={() => toggleBookmark(opportunity.id)}
+                    >
+                      {bookmarks.includes(opportunity.id) ? (
+                        <BookmarkCheck className="h-4 w-4 text-blue-600" />
+                      ) : (
+                        <Bookmark className="h-4 w-4" />
+                      )}
                     </Button>
                   </div>
                 </CardHeader>
@@ -220,16 +234,24 @@ const Opportunities = () => {
                     <span className="text-sm text-gray-500 truncate">
                       {opportunity.domain}
                     </span>
-                    <a 
-                      href={opportunity.source_url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                    >
-                      <Button size="sm" className="button-hover">
-                        Apply Now
-                        <ExternalLink className="h-4 w-4 ml-2" />
-                      </Button>
-                    </a>
+                    <div className="flex gap-2">
+                      <Link to={`/opportunities/${opportunity.id}`}>
+                        <Button size="sm" variant="outline">
+                          <Eye className="h-4 w-4 mr-1" />
+                          Details
+                        </Button>
+                      </Link>
+                      <a 
+                        href={opportunity.source_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                      >
+                        <Button size="sm" className="button-hover">
+                          Apply
+                          <ExternalLink className="h-4 w-4 ml-2" />
+                        </Button>
+                      </a>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

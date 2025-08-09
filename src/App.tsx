@@ -23,6 +23,7 @@ const Bookmarks = lazy(() => import('@/pages/Bookmarks'));
 const Profile = lazy(() => import('@/pages/Profile'));
 const Submit = lazy(() => import('@/pages/Submit'));
 const Notifications = lazy(() => import('@/pages/Notifications'));
+const AdvancedSearch = lazy(() => import('@/pages/AdvancedSearch'));
 
 // Admin pages
 const AdminDashboard = lazy(() => import('@/pages/AdminDashboard'));
@@ -69,6 +70,7 @@ function App() {
                     <Route path="/opportunities" element={<Opportunities />} />
                     <Route path="/opportunities/:id" element={<OpportunityDetail />} />
                     <Route path="/scholarships" element={<Scholarships />} />
+                    <Route path="/search/advanced" element={<AdvancedSearch />} />
 
                     {/* Protected user routes */}
                     <Route path="/dashboard" element={

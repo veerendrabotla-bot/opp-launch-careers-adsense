@@ -1,96 +1,92 @@
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { toast } from 'sonner';
+import { Database } from '@/integrations/supabase/types';
 
-interface NotificationSubscriptionProps {
-  onNewNotification: (notification: any) => void;
+type Notification = Database['public']['Tables']['notifications']['Row'];
+
+interface UseNotificationSubscriptionProps {
+  onNewNotification: (notification: Notification) => void;
   onRefresh: () => void;
 }
 
-export const useNotificationSubscription = ({ 
-  onNewNotification, 
-  onRefresh 
-}: NotificationSubscriptionProps) => {
+export const useNotificationSubscription = ({
+  onNewNotification,
+  onRefresh
+}: UseNotificationSubscriptionProps) => {
   const { user } = useAuth();
-  const channelRef = useRef<any>(null);
+  const subscriptionRef = useRef<any>(null);
   const mountedRef = useRef(true);
-  const subscribedRef = useRef(false);
-
-  const cleanup = useCallback(() => {
-    if (channelRef.current) {
-      console.log('Cleaning up notification subscription');
-      try {
-        supabase.removeChannel(channelRef.current);
-      } catch (error) {
-        console.error('Error removing channel:', error);
-      }
-      channelRef.current = null;
-      subscribedRef.current = false;
-    }
-  }, []);
 
   useEffect(() => {
-    if (!user || subscribedRef.current) return;
+    if (!user) return;
 
-    // Clean up any existing subscription first
-    cleanup();
+    // Clean up existing subscription
+    if (subscriptionRef.current) {
+      supabase.removeChannel(subscriptionRef.current);
+      subscriptionRef.current = null;
+    }
 
-    const channelName = `notifications-${user.id}-${Date.now()}`;
+    console.log('Setting up notification subscription for user:', user.id);
     
-    try {
-      const channel = supabase.channel(channelName);
-      
-      channel
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'notifications',
-            filter: `user_id=eq.${user.id}`
-          },
-          (payload) => {
-            if (!mountedRef.current) return;
-            
-            console.log('New notification received:', payload);
-            const newNotification = payload.new;
-            
-            onNewNotification(newNotification);
-            onRefresh();
-            
-            toast(newNotification.title, {
-              description: newNotification.message,
-              action: newNotification.action_url ? {
-                label: 'View',
-                onClick: () => window.open(newNotification.action_url, '_blank')
-              } : undefined,
-            });
+    const channelName = `notifications-${user.id}-${Date.now()}`;
+    const channel = supabase
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log('New notification received:', payload);
+          if (mountedRef.current) {
+            onNewNotification(payload.new as Notification);
           }
-        )
-        .subscribe((status) => {
-          console.log(`Notification subscription status: ${status}`);
-          if (status === 'SUBSCRIBED') {
-            subscribedRef.current = true;
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log('Notification updated:', payload);
+          // Only refresh if it's not a read status update to prevent loops
+          if (mountedRef.current && payload.old?.is_read !== payload.new?.is_read) {
+            setTimeout(() => {
+              onRefresh();
+            }, 500);
           }
-        });
+        }
+      )
+      .subscribe();
 
-      channelRef.current = channel;
-    } catch (error) {
-      console.error('Error setting up notification subscription:', error);
-    }
+    subscriptionRef.current = channel;
 
     return () => {
-      mountedRef.current = false;
-      cleanup();
+      if (subscriptionRef.current) {
+        console.log('Cleaning up notification subscription');
+        supabase.removeChannel(subscriptionRef.current);
+        subscriptionRef.current = null;
+      }
     };
-  }, [user?.id, onNewNotification, onRefresh, cleanup]);
+  }, [user?.id, onNewNotification, onRefresh]);
 
   useEffect(() => {
     return () => {
       mountedRef.current = false;
-      cleanup();
+      if (subscriptionRef.current) {
+        console.log('Cleaning up notification subscription on unmount');
+        supabase.removeChannel(subscriptionRef.current);
+        subscriptionRef.current = null;
+      }
     };
-  }, [cleanup]);
+  }, []);
 };
