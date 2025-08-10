@@ -3,7 +3,6 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Database } from '@/integrations/supabase/types';
-import { useNotificationSubscription } from '@/hooks/useNotificationSubscription';
 import NotificationBadge from '@/components/notifications/NotificationBadge';
 import NotificationDropdown from '@/components/notifications/NotificationDropdown';
 
@@ -51,6 +50,7 @@ const NotificationSystem = () => {
 
       if (error) throw error;
 
+      // Update local state immediately
       setNotifications(prev => 
         prev.map(n => n.id === notificationId ? { ...n, is_read: true } : n)
       );
@@ -72,6 +72,7 @@ const NotificationSystem = () => {
 
       if (error) throw error;
 
+      // Update local state immediately
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
       setUnreadCount(0);
     } catch (error) {
@@ -79,24 +80,61 @@ const NotificationSystem = () => {
     }
   };
 
-  const handleNewNotification = (notification: Notification) => {
-    setNotifications(prev => [notification, ...prev.slice(0, 19)]);
-    if (!notification.is_read) {
-      setUnreadCount(prev => prev + 1);
-    }
-  };
-
-  // Use the subscription hook
-  useNotificationSubscription({
-    onNewNotification: handleNewNotification,
-    onRefresh: fetchNotifications
-  });
-
   useEffect(() => {
     if (user) {
       fetchNotifications();
     }
   }, [user]);
+
+  // Single subscription with proper cleanup
+  useEffect(() => {
+    if (!user) return;
+
+    const channelName = `notifications-${user.id}-${Date.now()}`;
+    const channel = supabase
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log('New notification received:', payload);
+          const newNotification = payload.new as Notification;
+          setNotifications(prev => [newNotification, ...prev.slice(0, 19)]);
+          if (!newNotification.is_read) {
+            setUnreadCount(prev => prev + 1);
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log('Notification updated:', payload);
+          // Only refresh if it's a read status change and prevent loops
+          if (payload.old?.is_read !== payload.new?.is_read) {
+            fetchNotifications();
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('Notification subscription status:', status);
+      });
+
+    return () => {
+      console.log('Cleaning up notification subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
 
   if (!user || loading) return null;
 

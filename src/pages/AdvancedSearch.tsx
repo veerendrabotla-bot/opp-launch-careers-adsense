@@ -18,7 +18,8 @@ import {
   Bookmark,
   BookmarkCheck,
   X,
-  Loader2
+  Loader2,
+  Eye
 } from 'lucide-react';
 
 const AdvancedSearch = () => {
@@ -61,16 +62,17 @@ const AdvancedSearch = () => {
   const getTypeColor = (type: string) => {
     switch (type) {
       case "Internship": return "bg-blue-100 text-blue-800";
-      case "Contest": return "bg-green-100 text-green-800";
-      case "Event": return "bg-purple-100 text-purple-800";
+      case "Job": return "bg-green-100 text-green-800";
+      case "Contest": return "bg-purple-100 text-purple-800";
       case "Scholarship": return "bg-amber-100 text-amber-800";
+      case "Fellowship": return "bg-indigo-100 text-indigo-800";
       default: return "bg-gray-100 text-gray-800";
     }
   };
 
-  const typeOptions = ['Internship', 'Contest', 'Event', 'Scholarship'];
-  const domainOptions = ['Tech', 'Finance', 'Healthcare', 'Education', 'Marketing', 'Design'];
-  const locationOptions = ['India', 'USA', 'UK', 'Canada', 'Remote'];
+  const typeOptions = ['Internship', 'Job', 'Contest', 'Scholarship', 'Fellowship'];
+  const domainOptions = ['Tech', 'Finance', 'Healthcare', 'Education', 'Marketing', 'Design', 'Engineering'];
+  const locationOptions = ['India', 'USA', 'UK', 'Canada', 'Remote', 'Global'];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -276,12 +278,7 @@ const AdvancedSearch = () => {
                             )}
                           </div>
                           <CardTitle className="text-lg leading-tight line-clamp-2">
-                            <Link 
-                              to={`/opportunities/${opportunity.id}`}
-                              className="hover:text-blue-600 transition-colors"
-                            >
-                              {opportunity.title}
-                            </Link>
+                            {opportunity.title}
                           </CardTitle>
                         </div>
                         <Button 
@@ -327,17 +324,19 @@ const AdvancedSearch = () => {
                         <div className="flex gap-2">
                           <Link to={`/opportunities/${opportunity.id}`}>
                             <Button size="sm" variant="outline">
-                              View Details
+                              <Eye className="h-4 w-4 mr-1" />
+                              Details
                             </Button>
                           </Link>
                           <a 
                             href={opportunity.source_url} 
                             target="_blank" 
                             rel="noopener noreferrer"
+                            className="inline-block"
                           >
                             <Button size="sm">
                               Apply
-                              <ExternalLink className="h-4 w-4 ml-2" />
+                              <ExternalLink className="h-4 w-4 ml-1" />
                             </Button>
                           </a>
                         </div>
