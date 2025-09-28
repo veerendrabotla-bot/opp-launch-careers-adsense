@@ -77,11 +77,13 @@ const UnifiedNavigation = () => {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex-shrink-0">
-            <Link to="/" className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">OH</span>
+            <Link to="/" className="flex items-center space-x-2 group">
+              <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary-glow rounded-lg flex items-center justify-center transform group-hover:scale-110 transition-all duration-200">
+                <span className="text-primary-foreground font-bold text-sm">OH</span>
               </div>
-              <span className="font-bold text-lg text-gray-900 hidden sm:block">OpportunityHub</span>
+              <span className="font-bold text-lg bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent hidden sm:block">
+                OpportunityHub
+              </span>
             </Link>
           </div>
 
