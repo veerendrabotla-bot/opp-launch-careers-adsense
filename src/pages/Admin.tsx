@@ -103,11 +103,11 @@ const Admin = () => {
   };
 
   const handleReject = async () => {
-    if (!selectedOpportunity || !rejectionReason.trim()) return;
+    if (!selectedOpportunity) return;
 
     try {
       setActionLoading(selectedOpportunity.id);
-      await rejectOpportunity(selectedOpportunity.id, rejectionReason);
+      await rejectOpportunity(selectedOpportunity.id);
       toast({
         title: "Success",
         description: "Opportunity rejected",
