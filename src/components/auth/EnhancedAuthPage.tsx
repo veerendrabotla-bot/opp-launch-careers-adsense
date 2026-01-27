@@ -1,14 +1,13 @@
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/contexts/AuthContext';
-import SecureAdminRegistration from './SecureAdminRegistration';
-import { Eye, EyeOff, Loader2, User, Shield, Crown } from 'lucide-react';
+import { Eye, EyeOff, Loader2, User, UserPlus, Briefcase, GraduationCap, Trophy } from 'lucide-react';
 
 const EnhancedAuthPage: React.FC = () => {
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
@@ -52,8 +51,8 @@ const EnhancedAuthPage: React.FC = () => {
       return;
     }
 
-    if (signupForm.password.length < 6) {
-      setError('Password must be at least 6 characters long');
+    if (signupForm.password.length < 8) {
+      setError('Password must be at least 8 characters long');
       setLoading(false);
       return;
     }
@@ -76,189 +75,248 @@ const EnhancedAuthPage: React.FC = () => {
     }
   };
 
+  const features = [
+    { icon: Briefcase, text: 'Access thousands of job opportunities' },
+    { icon: GraduationCap, text: 'Discover scholarships worldwide' },
+    { icon: Trophy, text: 'Participate in contests and hackathons' },
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">OpportunityHub</h1>
-          <p className="text-gray-600">Your gateway to endless opportunities</p>
+    <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-background flex items-center justify-center p-4">
+      <div className="w-full max-w-5xl grid md:grid-cols-2 gap-8 items-center">
+        {/* Left side - Branding */}
+        <div className="hidden md:block space-y-8">
+          <div>
+            <div className="flex items-center space-x-3 mb-6">
+              <div className="w-12 h-12 bg-gradient-to-br from-primary to-primary/80 rounded-xl flex items-center justify-center shadow-lg">
+                <span className="text-primary-foreground font-bold text-lg">OH</span>
+              </div>
+              <h1 className="text-3xl font-bold text-foreground">OpportunityHub</h1>
+            </div>
+            <p className="text-xl text-muted-foreground leading-relaxed">
+              Your gateway to endless opportunities. Connect with top companies, discover scholarships, 
+              and accelerate your career journey.
+            </p>
+          </div>
+          
+          <div className="space-y-4">
+            {features.map((feature, index) => (
+              <div key={index} className="flex items-center space-x-4 p-4 bg-card rounded-xl border shadow-sm">
+                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                  <feature.icon className="h-5 w-5 text-primary" />
+                </div>
+                <span className="text-foreground font-medium">{feature.text}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="p-6 bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl border">
+            <p className="text-sm text-muted-foreground italic">
+              "OpportunityHub helped me land my dream internship at a Fortune 500 company. 
+              The platform made it easy to discover and apply to opportunities that matched my skills."
+            </p>
+            <p className="text-sm font-medium text-foreground mt-3">— Sarah J., Software Engineer</p>
+          </div>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="login" className="text-sm">
-              <User className="h-4 w-4 mr-1" />
-              Login
-            </TabsTrigger>
-            <TabsTrigger value="signup" className="text-sm">
-              <Crown className="h-4 w-4 mr-1" />
-              Sign Up
-            </TabsTrigger>
-            <TabsTrigger value="admin" className="text-sm">
-              <Shield className="h-4 w-4 mr-1" />
-              Admin
-            </TabsTrigger>
-          </TabsList>
+        {/* Right side - Auth Forms */}
+        <div className="w-full max-w-md mx-auto">
+          <div className="text-center mb-6 md:hidden">
+            <div className="flex items-center justify-center space-x-2 mb-4">
+              <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center">
+                <span className="text-primary-foreground font-bold">OH</span>
+              </div>
+              <h1 className="text-2xl font-bold text-foreground">OpportunityHub</h1>
+            </div>
+            <p className="text-muted-foreground">Your gateway to endless opportunities</p>
+          </div>
 
-          {/* Login Tab */}
-          <TabsContent value="login">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-2xl text-center">Welcome Back</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleLogin} className="space-y-4">
-                  {error && (
-                    <Alert variant="destructive">
-                      <AlertDescription>{error}</AlertDescription>
-                    </Alert>
-                  )}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-4">
+              <TabsTrigger value="login" className="text-sm font-medium">
+                <User className="h-4 w-4 mr-2" />
+                Sign In
+              </TabsTrigger>
+              <TabsTrigger value="signup" className="text-sm font-medium">
+                <UserPlus className="h-4 w-4 mr-2" />
+                Sign Up
+              </TabsTrigger>
+            </TabsList>
 
-                  <div>
-                    <Label htmlFor="login-email">Email</Label>
-                    <Input
-                      id="login-email"
-                      type="email"
-                      value={loginForm.email}
-                      onChange={(e) => setLoginForm(prev => ({ ...prev, email: e.target.value }))}
-                      placeholder="Enter your email"
-                      required
-                      disabled={loading}
-                    />
-                  </div>
+            {/* Login Tab */}
+            <TabsContent value="login">
+              <Card className="border-0 shadow-xl">
+                <CardHeader className="space-y-1">
+                  <CardTitle className="text-2xl font-bold text-center">Welcome back</CardTitle>
+                  <CardDescription className="text-center">
+                    Enter your credentials to access your account
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleLogin} className="space-y-4">
+                    {error && (
+                      <Alert variant="destructive">
+                        <AlertDescription>{error}</AlertDescription>
+                      </Alert>
+                    )}
 
-                  <div>
-                    <Label htmlFor="login-password">Password</Label>
-                    <div className="relative">
+                    <div className="space-y-2">
+                      <Label htmlFor="login-email">Email</Label>
                       <Input
-                        id="login-password"
-                        type={showPassword ? "text" : "password"}
-                        value={loginForm.password}
-                        onChange={(e) => setLoginForm(prev => ({ ...prev, password: e.target.value }))}
-                        placeholder="Enter your password"
+                        id="login-email"
+                        type="email"
+                        value={loginForm.email}
+                        onChange={(e) => setLoginForm(prev => ({ ...prev, email: e.target.value }))}
+                        placeholder="Enter your email"
                         required
                         disabled={loading}
+                        className="h-11"
                       />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2"
-                        disabled={loading}
-                      >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
                     </div>
-                  </div>
 
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Signing in...
-                      </>
-                    ) : (
-                      'Sign In'
+                    <div className="space-y-2">
+                      <Label htmlFor="login-password">Password</Label>
+                      <div className="relative">
+                        <Input
+                          id="login-password"
+                          type={showPassword ? "text" : "password"}
+                          value={loginForm.password}
+                          onChange={(e) => setLoginForm(prev => ({ ...prev, password: e.target.value }))}
+                          placeholder="Enter your password"
+                          required
+                          disabled={loading}
+                          className="h-11 pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                          disabled={loading}
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <Button type="submit" className="w-full h-11 font-medium" disabled={loading}>
+                      {loading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Signing in...
+                        </>
+                      ) : (
+                        'Sign In'
+                      )}
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Signup Tab */}
+            <TabsContent value="signup">
+              <Card className="border-0 shadow-xl">
+                <CardHeader className="space-y-1">
+                  <CardTitle className="text-2xl font-bold text-center">Create an account</CardTitle>
+                  <CardDescription className="text-center">
+                    Join thousands of users finding opportunities
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleSignup} className="space-y-4">
+                    {error && (
+                      <Alert variant="destructive">
+                        <AlertDescription>{error}</AlertDescription>
+                      </Alert>
                     )}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          </TabsContent>
 
-          {/* Signup Tab */}
-          <TabsContent value="signup">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-2xl text-center">Create Account</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSignup} className="space-y-4">
-                  {error && (
-                    <Alert variant="destructive">
-                      <AlertDescription>{error}</AlertDescription>
-                    </Alert>
-                  )}
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-name">Full Name</Label>
+                      <Input
+                        id="signup-name"
+                        type="text"
+                        value={signupForm.name}
+                        onChange={(e) => setSignupForm(prev => ({ ...prev, name: e.target.value }))}
+                        placeholder="Enter your full name"
+                        required
+                        disabled={loading}
+                        className="h-11"
+                      />
+                    </div>
 
-                  <div>
-                    <Label htmlFor="signup-name">Full Name</Label>
-                    <Input
-                      id="signup-name"
-                      type="text"
-                      value={signupForm.name}
-                      onChange={(e) => setSignupForm(prev => ({ ...prev, name: e.target.value }))}
-                      placeholder="Enter your full name"
-                      required
-                      disabled={loading}
-                    />
-                  </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-email">Email</Label>
+                      <Input
+                        id="signup-email"
+                        type="email"
+                        value={signupForm.email}
+                        onChange={(e) => setSignupForm(prev => ({ ...prev, email: e.target.value }))}
+                        placeholder="Enter your email"
+                        required
+                        disabled={loading}
+                        className="h-11"
+                      />
+                    </div>
 
-                  <div>
-                    <Label htmlFor="signup-email">Email</Label>
-                    <Input
-                      id="signup-email"
-                      type="email"
-                      value={signupForm.email}
-                      onChange={(e) => setSignupForm(prev => ({ ...prev, email: e.target.value }))}
-                      placeholder="Enter your email"
-                      required
-                      disabled={loading}
-                    />
-                  </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-password">Password</Label>
+                      <Input
+                        id="signup-password"
+                        type="password"
+                        value={signupForm.password}
+                        onChange={(e) => setSignupForm(prev => ({ ...prev, password: e.target.value }))}
+                        placeholder="Create a password (min 8 characters)"
+                        required
+                        disabled={loading}
+                        className="h-11"
+                      />
+                    </div>
 
-                  <div>
-                    <Label htmlFor="signup-password">Password</Label>
-                    <Input
-                      id="signup-password"
-                      type="password"
-                      value={signupForm.password}
-                      onChange={(e) => setSignupForm(prev => ({ ...prev, password: e.target.value }))}
-                      placeholder="Create a password (min 6 characters)"
-                      required
-                      disabled={loading}
-                    />
-                  </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-confirm-password">Confirm Password</Label>
+                      <Input
+                        id="signup-confirm-password"
+                        type="password"
+                        value={signupForm.confirmPassword}
+                        onChange={(e) => setSignupForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                        placeholder="Confirm your password"
+                        required
+                        disabled={loading}
+                        className="h-11"
+                      />
+                    </div>
 
-                  <div>
-                    <Label htmlFor="signup-confirm-password">Confirm Password</Label>
-                    <Input
-                      id="signup-confirm-password"
-                      type="password"
-                      value={signupForm.confirmPassword}
-                      onChange={(e) => setSignupForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                      placeholder="Confirm your password"
-                      required
-                      disabled={loading}
-                    />
-                  </div>
+                    <Button type="submit" className="w-full h-11 font-medium" disabled={loading}>
+                      {loading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Creating account...
+                        </>
+                      ) : (
+                        'Create Account'
+                      )}
+                    </Button>
 
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Creating account...
-                      </>
-                    ) : (
-                      'Create Account'
-                    )}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                    <p className="text-xs text-center text-muted-foreground">
+                      By creating an account, you agree to our{' '}
+                      <a href="/terms" className="text-primary hover:underline">Terms of Service</a>
+                      {' '}and{' '}
+                      <a href="/privacy" className="text-primary hover:underline">Privacy Policy</a>
+                    </p>
+                  </form>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
 
-          {/* Admin Registration Tab */}
-          <TabsContent value="admin">
-            <SecureAdminRegistration />
-          </TabsContent>
-        </Tabs>
-
-        <div className="text-center mt-6 text-sm text-gray-500">
-          <p>
-            Need help? Contact{' '}
-            <a href="mailto:admin@opportunityhub.com" className="text-blue-600 hover:underline">
-              admin@opportunityhub.com
-            </a>
-          </p>
+          <div className="text-center mt-6 text-sm text-muted-foreground">
+            <p>
+              Need help?{' '}
+              <a href="/contact" className="text-primary hover:underline font-medium">
+                Contact Support
+              </a>
+            </p>
+          </div>
         </div>
       </div>
     </div>

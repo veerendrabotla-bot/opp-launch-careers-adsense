@@ -40,7 +40,6 @@ const AdminExpired = lazy(() => import('@/pages/AdminExpired'));
 const ModeratorDashboard = lazy(() => import('@/pages/ModeratorDashboard'));
 const ModeratorPending = lazy(() => import('@/pages/ModeratorPending'));
 const ModeratorUsers = lazy(() => import('@/pages/ModeratorUsers'));
-const ModeratorApproved = lazy(() => import('@/pages/ModeratorApproved'));
 const ModeratorApprovedContent = lazy(() => import('@/pages/ModeratorApprovedContent'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
 
@@ -48,7 +47,10 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 1000 * 60 * 5, // 5 minutes
-      retry: false,
+      gcTime: 1000 * 60 * 10, // 10 minutes garbage collection
+      retry: 1,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: true,
     },
   },
 });
@@ -65,7 +67,7 @@ const App = () => {
               <div className="min-h-screen flex flex-col">
                 <UnifiedNavigation />
                 <main className="flex-1">
-                  <Suspense fallback={<LoadingSpinner />}>
+                  <Suspense fallback={<LoadingSpinner fullScreen size="lg" message="Loading..." />}>
                     <Routes>
                       <Route path="/" element={<Home />} />
                       <Route path="/auth" element={<Auth />} />

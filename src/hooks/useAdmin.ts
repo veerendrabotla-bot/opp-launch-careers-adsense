@@ -71,16 +71,13 @@ export const useAdmin = () => {
     }
   };
 
-  const rejectOpportunity = async (opportunityId: string, reason?: string) => {
+  const rejectOpportunity = async (opportunityId: string) => {
     if (!isAdmin && !isModerator) return false;
 
     try {
       const { error } = await supabase
         .from('opportunities')
-        .update({ 
-          is_approved: false,
-          rejection_reason: reason
-        })
+        .update({ is_approved: false })
         .eq('id', opportunityId);
 
       if (error) throw error;

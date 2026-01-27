@@ -37,7 +37,7 @@ const ModeratorPending = () => {
   };
 
   const handleReject = async (id: string) => {
-    const success = await rejectOpportunity(id, "Does not meet content guidelines");
+    const success = await rejectOpportunity(id);
     if (success) {
       toast({
         title: "Rejected",
