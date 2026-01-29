@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import ModeratorNavigation from '@/components/ModeratorNavigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,14 +6,13 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import LoadingSpinner from '@/components/LoadingSpinner';
 import { 
   CheckCircle, 
   Search, 
   Eye,
-  Trash2,
   Calendar,
-  User,
-  Loader2
+  User
 } from 'lucide-react';
 import { Database } from '@/integrations/supabase/types';
 
@@ -82,28 +80,21 @@ const ModeratorApprovedContent = () => {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading approved content...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner fullScreen size="lg" message="Loading approved content..." />;
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-muted/30">
+      <div className="bg-card border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Approved Content</h1>
-              <p className="text-gray-600 mt-2">View and manage approved opportunities</p>
+              <h1 className="text-2xl font-bold text-foreground">Approved Content</h1>
+              <p className="text-muted-foreground mt-1">View and manage approved opportunities</p>
             </div>
             <div className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-500" />
-              <span className="text-sm text-gray-600">{approvedContent.length} approved items</span>
+              <CheckCircle className="h-5 w-5 text-success" />
+              <span className="text-sm text-muted-foreground">{approvedContent.length} approved items</span>
             </div>
           </div>
         </div>
@@ -114,7 +105,7 @@ const ModeratorApprovedContent = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">
           <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
               placeholder="Search approved content..."
               value={searchTerm}
@@ -130,10 +121,10 @@ const ModeratorApprovedContent = () => {
               <CardContent className="pt-6">
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
-                    <h3 className="font-semibold text-lg mb-2">{item.title}</h3>
-                    <p className="text-gray-600 mb-4 line-clamp-2">{item.description}</p>
+                    <h3 className="font-semibold text-lg mb-2 text-foreground">{item.title}</h3>
+                    <p className="text-muted-foreground mb-4 line-clamp-2">{item.description}</p>
                     
-                    <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
                       <div className="flex items-center gap-1">
                         <Calendar className="h-4 w-4" />
                         Approved: {item.approved_at ? new Date(item.approved_at).toLocaleDateString() : 'N/A'}
@@ -145,12 +136,12 @@ const ModeratorApprovedContent = () => {
                     </div>
 
                     <div className="flex gap-2">
-                      <Badge className="bg-green-100 text-green-800">
+                      <Badge className="bg-success/10 text-success border-success/20">
                         <CheckCircle className="h-3 w-3 mr-1" />
                         Approved
                       </Badge>
                       {item.featured && (
-                        <Badge className="bg-blue-100 text-blue-800">Featured</Badge>
+                        <Badge className="bg-primary/10 text-primary border-primary/20">Featured</Badge>
                       )}
                     </div>
                   </div>
@@ -161,7 +152,7 @@ const ModeratorApprovedContent = () => {
                       size="sm"
                       onClick={() => window.open(`/opportunities/${item.id}`, '_blank')}
                     >
-                      <Eye className="h-4 w-4" />
+                      <Eye className="h-4 w-4 mr-1" />
                       View
                     </Button>
                     <Button
@@ -180,9 +171,9 @@ const ModeratorApprovedContent = () => {
           {filteredContent.length === 0 && (
             <Card>
               <CardContent className="pt-6 text-center">
-                <CheckCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No approved content</h3>
-                <p className="text-gray-500">
+                <CheckCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-foreground mb-2">No approved content</h3>
+                <p className="text-muted-foreground">
                   {searchTerm ? 'No content matches your search.' : 'No content has been approved yet.'}
                 </p>
               </CardContent>
