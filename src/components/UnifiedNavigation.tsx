@@ -109,7 +109,7 @@ const UnifiedNavigation = () => {
 
           {/* Right Side */}
           <div className="flex items-center space-x-3">
-            {user ? (
+            {user && (
               <>
                 {/* Notifications */}
                 <NotificationSystem />
@@ -203,19 +203,11 @@ const UnifiedNavigation = () => {
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-
-                {/* Mobile Menu Button */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="md:hidden"
-                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                >
-                  {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-                </Button>
               </>
-            ) : (
-              <div className="flex items-center space-x-2">
+            )}
+
+            {!user && (
+              <div className="hidden md:flex items-center space-x-2">
                 <Link to="/auth">
                   <Button variant="outline" size="sm">Sign In</Button>
                 </Link>
@@ -224,11 +216,21 @@ const UnifiedNavigation = () => {
                 </Link>
               </div>
             )}
+
+            {/* Mobile Menu Button - always visible on mobile */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="md:hidden"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </Button>
           </div>
         </div>
 
         {/* Mobile Menu */}
-        {mobileMenuOpen && user && (
+        {mobileMenuOpen && (
           <div className="md:hidden border-t bg-white">
             <div className="px-2 pt-2 pb-3 space-y-1">
               {mainNavItems.map((item) => (
@@ -247,8 +249,19 @@ const UnifiedNavigation = () => {
                 </Link>
               ))}
               
+              {!user && (
+                <div className="border-t pt-2 mt-2 flex flex-col gap-2 px-3">
+                  <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="outline" className="w-full">Sign In</Button>
+                  </Link>
+                  <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>
+                    <Button className="w-full">Sign Up</Button>
+                  </Link>
+                </div>
+              )}
+
               {/* Admin/Moderator items in mobile */}
-              {userRole === 'admin' && (
+              {user && userRole === 'admin' && (
                 <>
                   <div className="border-t pt-2 mt-2">
                     <div className="px-3 py-1 text-xs font-semibold text-gray-500 uppercase">Admin</div>
@@ -267,7 +280,7 @@ const UnifiedNavigation = () => {
                 </>
               )}
               
-              {userRole === 'moderator' && (
+              {user && userRole === 'moderator' && (
                 <>
                   <div className="border-t pt-2 mt-2">
                     <div className="px-3 py-1 text-xs font-semibold text-gray-500 uppercase">Moderator</div>
