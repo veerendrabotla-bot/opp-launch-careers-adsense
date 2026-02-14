@@ -17,8 +17,11 @@ export const usePlatformSettings = () => {
       if (error) throw error;
       
       const settingsMap = (data || []).reduce((acc, setting) => {
-        // value is stored as JSON string, parse it
-        const val = setting.value;
+        let val = setting.value;
+        // value is stored as JSON; unwrap strings (e.g. "\"hello\"" -> "hello")
+        if (typeof val === 'string') {
+          try { val = JSON.parse(val); } catch { /* keep as-is */ }
+        }
         acc[setting.key] = typeof val === 'string' ? val : JSON.stringify(val);
         return acc;
       }, {} as Record<string, string>);
@@ -35,11 +38,14 @@ export const usePlatformSettings = () => {
     try {
       const { error } = await supabase
         .from('platform_settings')
-        .upsert({
-          key,
-          value: value as any,
-          updated_at: new Date().toISOString()
-        });
+        .upsert(
+          {
+            key,
+            value: JSON.stringify(value) as any,
+            updated_at: new Date().toISOString()
+          },
+          { onConflict: 'key' }
+        );
 
       if (error) throw error;
       
